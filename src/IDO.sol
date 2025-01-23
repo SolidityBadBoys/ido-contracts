@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-import { PresaleStatus } from "./enums/presale-status.enum.sol";
+import {PresaleStatus} from "./enums/presale-status.enum.sol";
 
- contract IDO is Ownable {
+contract IDO is Ownable {
     uint256 constant MAX_VALUE_OF_ID = 99999999999999;
-    
+
     mapping(address => bool) admins;
-    mapping (uint256 claimStrategyId => ClaimStrategy) claimStrategies;
-    mapping (uint256 presaleId => PresaleInfo) presales;
-    mapping (address => Balance[]) contributions;
-    mapping (uint256 presaleId => mapping(address => bool)) whitelistedTokens;
-    mapping (uint256 presaleId => mapping(address => bool)) whitelistedWallets;
+    mapping(uint256 claimStrategyId => ClaimStrategy) claimStrategies;
+    mapping(uint256 presaleId => PresaleInfo) presales;
+    mapping(address => Balance[]) contributions;
+    mapping(uint256 presaleId => mapping(address => bool)) whitelistedTokens;
+    mapping(uint256 presaleId => mapping(address => bool)) whitelistedWallets;
 
     struct Balance {
         uint256 presaleId;
@@ -39,7 +39,7 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         ClaimSchedule[] claimsSchedule;
         bool isExists;
     }
-    
+
     struct ClaimStrategy {
         uint256 strategyId;
     }
@@ -51,7 +51,7 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
 
     modifier onlyAdmin() {
         address caller = _msgSender();
-        require(admins[caller] == true, 'Only admin can perform this action');
+        require(admins[caller] == true, "Only admin can perform this action");
         _;
     }
 
@@ -60,9 +60,10 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         _;
     }
 
-    modifier onlyActivePresale(uint256 presaleId)  {
+    modifier onlyActivePresale(uint256 presaleId) {
         if (!presales[presaleId].isExists) revert PresaleDoesNotExists();
-        if (presales[presaleId].status != PresaleStatus.ACTIVE) revert PresaleIsNotActive();
+        if (presales[presaleId].status != PresaleStatus.ACTIVE)
+            revert PresaleIsNotActive();
         _;
     }
 
@@ -77,12 +78,12 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
 
     /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
     using SafeERC20 for IERC20;
-    
+
     constructor() Ownable(_msgSender()) {}
 
     function setAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        require(!admins[_admin], 'Admin with this address already exists');
+        require(!admins[_admin], "Admin with this address already exists");
         admins[_admin] = true;
     }
 
@@ -92,7 +93,11 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         admins[_admin] = false;
     }
 
-    function withdraw(address token, uint256 amount, address recipient) external onlyOwner {
+    function withdraw(
+        address token,
+        uint256 amount,
+        address recipient
+    ) external onlyOwner {
         if (recipient == address(0)) revert CannotBeZero();
 
         if (token == address(0)) {
@@ -102,41 +107,78 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         }
     }
 
-    function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyAdmin {
+    function toggleWhitelistedMode(
+        uint256 presaleId,
+        bool isPublic
+    ) external onlyAdmin {
         PresaleInfo storage presale = presales[presaleId];
         if (!presale.isExists) revert PresaleDoesNotExists();
 
         presale.isPublic = isPublic;
     }
- 
-    function addParticipantsToWhitelist(uint256 presaleId, address[] calldata participants) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, "Public presales can't be whitelisted");
+
+    function addParticipantsToWhitelist(
+        uint256 presaleId,
+        address[] calldata participants
+    )
+        external
+        onlyAdmin
+        arrayNotEmpty(participants)
+        onlyActivePresale(presaleId)
+    {
+        require(
+            presales[presaleId].isPublic == false,
+            "Public presales can't be whitelisted"
+        );
 
         for (uint i = 0; i < participants.length; i++) {
             address participant = participants[i];
             whitelistedWallets[presaleId][participant] = true;
         }
-    } 
+    }
 
-    function disableParticipantsInWhitelist(uint256 presaleId, address[] calldata participants) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, "Public presales can't be whitelisted");
+    function disableParticipantsInWhitelist(
+        uint256 presaleId,
+        address[] calldata participants
+    )
+        external
+        onlyAdmin
+        arrayNotEmpty(participants)
+        onlyActivePresale(presaleId)
+    {
+        require(
+            presales[presaleId].isPublic == false,
+            "Public presales can't be whitelisted"
+        );
 
         for (uint i = 0; i < participants.length; i++) {
-            require(whitelistedWallets[presaleId][participants[i]], "Wallet is not in whitelist");
+            require(
+                whitelistedWallets[presaleId][participants[i]],
+                "Wallet is not in whitelist"
+            );
             whitelistedWallets[presaleId][participants[i]] = false;
         }
     }
-     
-    function addTokensToWhitelist(uint256 presaleId, address[] calldata tokens) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
+
+    function addTokensToWhitelist(
+        uint256 presaleId,
+        address[] calldata tokens
+    ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
         for (uint i = 0; i < tokens.length; i++) {
             address token = tokens[i];
             whitelistedTokens[presaleId][token] = true;
         }
-    } 
+    }
 
-    function disableTokensInWhitelist(uint256 presaleId, address[] calldata tokens) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
+    function disableTokensInWhitelist(
+        uint256 presaleId,
+        address[] calldata tokens
+    ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
         for (uint i = 0; i < tokens.length; i++) {
-            require(whitelistedTokens[presaleId][tokens[i]], "Token is not in whitelist");
+            require(
+                whitelistedTokens[presaleId][tokens[i]],
+                "Token is not in whitelist"
+            );
             whitelistedTokens[presaleId][tokens[i]] = false;
         }
     }
@@ -169,7 +211,7 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         _validateSchedule(claimsSchedule);
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
         _addWhitelistedWallets(presaleId, initialWhitelistedWallets);
-    
+
         PresaleInfo memory presale = PresaleInfo({
             id: presaleId,
             startDate: startDate,
@@ -185,23 +227,40 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
             claimsSchedule: claimsSchedule,
             isExists: true
         });
-        
+
         presales[presaleId] = presale;
     }
 
-    function _getRandomNumber(uint256 max) private view returns(uint256) {
-        return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % max;
+    function _getRandomNumber(uint256 max) private view returns (uint256) {
+        return
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        block.timestamp,
+                        block.prevrandao,
+                        msg.sender
+                    )
+                )
+            ) % max;
     }
 
-    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule) private view {
+    function _validateSchedule(
+        ClaimSchedule[] calldata claimsSchedule
+    ) private view {
         uint256 totalClaimsSchedulePercentage = 0;
         for (uint i = 0; i < claimsSchedule.length; i++) {
             ClaimSchedule memory claimSchedule = claimsSchedule[i];
-            require(block.timestamp <= claimSchedule.availableFromDate, "Claim start date is incorrect");
-            
+            require(
+                block.timestamp <= claimSchedule.availableFromDate,
+                "Claim start date is incorrect"
+            );
+
             totalClaimsSchedulePercentage += claimSchedule.percentage;
         }
-        require(totalClaimsSchedulePercentage == 100, 'Sum of claims schedule percentage should be 100');
+        require(
+            totalClaimsSchedulePercentage == 100,
+            "Sum of claims schedule percentage should be 100"
+        );
     }
 
     function _validatePresaleInitialData(
@@ -217,12 +276,21 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         require(startDate >= block.timestamp, "Incorrect start date");
         require(endDate > block.timestamp, "Incorrect end date");
         require(totalTokensForSale > 0, "Total tokens for sale cannot be zero");
-        require(minAllocationAmount > 0, "Min allocation amount cannot be zero");
-        require(maxAllocationAmount > 0, "Max allocation amount cannot be zero");
+        require(
+            minAllocationAmount > 0,
+            "Min allocation amount cannot be zero"
+        );
+        require(
+            maxAllocationAmount > 0,
+            "Max allocation amount cannot be zero"
+        );
         require(priceInUSDT > 0, "Price in USDT cannot be zero");
     }
 
-    function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
+    function _addWhitelistedTokens(
+        uint256 presaleId,
+        address[] calldata tokens
+    ) private {
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
             if (token == address(0)) revert CannotBeZero();
@@ -230,7 +298,10 @@ import { PresaleStatus } from "./enums/presale-status.enum.sol";
         }
     }
 
-    function _addWhitelistedWallets(uint256 presaleId, address[] calldata wallets) private {
+    function _addWhitelistedWallets(
+        uint256 presaleId,
+        address[] calldata wallets
+    ) private {
         for (uint256 i = 0; i < wallets.length; i++) {
             address wallet = wallets[i];
             if (wallet == address(0)) revert CannotBeZero();
