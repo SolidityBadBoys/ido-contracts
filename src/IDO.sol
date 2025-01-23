@@ -51,7 +51,7 @@ contract IDO is Ownable {
 
     modifier onlyAdmin() {
         address caller = _msgSender();
-        require(admins[caller] == true, "Only admin can perform this action");
+        if (admins[caller] != true) revert NotAnAdmin();
         _;
     }
 
@@ -65,6 +65,9 @@ contract IDO is Ownable {
         if (presales[presaleId].status != PresaleStatus.ACTIVE) revert PresaleIsNotActive();
         _;
     }
+
+    /// @dev Error when the user is not an admin
+    error NotAnAdmin();
 
     /// @dev Error when the token or amount is zero
     error CannotBeZero();
