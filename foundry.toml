@@ -7,6 +7,6 @@ libs = ["lib"]
 bracket_spacing = true
 
 [env]
-USDT_CONTRACT_ADDRESS = 0x1870Dc7A474e045026F9ef053d5bB20a250Cc084
+USDT_CONTRACT_ADDRESS = "0x1870Dc7A474e045026F9ef053d5bB20a250Cc084"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
