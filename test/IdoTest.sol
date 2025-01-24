@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Test } from "./Test.sol";
+import { Test } from './Test.sol';
 
-import {IDO} from "../src/IDO.sol";
-import {Token} from "../src/Token.sol";
+import {IDO} from '../src/IDO.sol';
+import {Token} from '../src/Token.sol';
 
 contract IdoTest is Test {
     IDO internal ido;
@@ -26,17 +26,17 @@ contract IdoTest is Test {
     }
 
        function createPresale(bool isPublic) internal {
-        IDO.ClaimSchedule[] memory claimsSchedule;
+        IDO.ClaimSchedule[] memory claimsSchedule = new IDO.ClaimSchedule[](1);
         claimsSchedule[0] = IDO.ClaimSchedule({
             availableFromDate: block.timestamp,
             percentage: 10
         });
 
-        address[] memory initialWhitelistedTokens;
+        address[] memory initialWhitelistedTokens = new address[](2);
         address[] memory initialWhitelistedWallets;
         
         address ethToken = address(0);
-        address usdtToken = vm.envAddress("USDT_CONTRACT_ADDRESS");
+        address usdtToken = vm.envAddress('USDT_CONTRACT_ADDRESS');
 
         initialWhitelistedTokens[0] = ethToken;
         initialWhitelistedTokens[1] = usdtToken;

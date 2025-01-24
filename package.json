@@ -2,7 +2,7 @@
   "scripts": {
     "lint": "solhint 'src/**/*.sol' 'test/**/*.sol'",
     "format": "prettier --write 'src/**/*.sol' 'test/**/*.sol'",
-    "solhint": "solhint --fix --config .solhint.json \"src/*.sol\""
+    "solhint": "solhint --fix --config .solhint.json \"src/**/*.sol\" \"test/**/*.sol\""
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.1.0",

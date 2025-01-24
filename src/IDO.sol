@@ -170,7 +170,9 @@ contract IDO is Ownable {
         address[] calldata initialWhitelistedWallets,
         bool isPublic
     ) external onlyAdmin {
+        
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
+
 
         _validatePresaleInitialData(
             startDate,

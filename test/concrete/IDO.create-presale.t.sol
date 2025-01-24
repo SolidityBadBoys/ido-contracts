@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IdoTest } from "../IdoTest.sol";
+import { IdoTest } from '../IdoTest.sol';
 
-import {IDO} from "../../src/IDO.sol";
+import {IDO} from '../../src/IDO.sol';
 
 /**
  * @title IDOTest
@@ -17,8 +17,7 @@ contract IdoCreatePresale is IdoTest {
     function test_WhenCallerIsNotAdmin() external {
         // it reverts
         // Expect revert with NotAnAdmin
-
-        vm.expectRevert(abi.encodeWithSelector(IDO.NotAnAdmin.selector));
+        vm.expectRevert(IDO.NotAnAdmin.selector);
 
         vm.prank(alina);
 
