@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
+import { Address } from '@openzeppelin/contracts/utils/Address.sol';
 
-import { PresaleStatus } from "./enums/presale-status.enum.sol";
+import { PresaleStatus } from './enums/presale-status.enum.sol';
 
 contract IDO is Ownable {
     uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
@@ -56,7 +56,7 @@ contract IDO is Ownable {
     }
 
     modifier arrayNotEmpty(address[] calldata array) {
-        require(array.length > 0, "Array is empty");
+        require(array.length > 0, 'Array is empty');
         _;
     }
 
@@ -85,13 +85,13 @@ contract IDO is Ownable {
 
     function setAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        require(!admins[_admin], "Admin with this address already exists");
+        require(!admins[_admin], 'Admin with this address already exists');
         admins[_admin] = true;
     }
 
     function disableAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        require(admins[_admin], "Admin with this address doesn't exist");
+        require(admins[_admin], 'Admin with this address doesn"t exist');
         admins[_admin] = false;
     }
 
@@ -116,7 +116,7 @@ contract IDO is Ownable {
         uint256 presaleId,
         address[] calldata participants
     ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, "Public presales can't be whitelisted");
+        require(presales[presaleId].isPublic == false, 'Public presales can"t be whitelisted');
 
         for (uint256 i = 0; i < participants.length; i++) {
             address participant = participants[i];
@@ -128,10 +128,10 @@ contract IDO is Ownable {
         uint256 presaleId,
         address[] calldata participants
     ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, "Public presales can't be whitelisted");
+        require(presales[presaleId].isPublic == false, 'Public presales can"t be whitelisted');
 
         for (uint256 i = 0; i < participants.length; i++) {
-            require(whitelistedWallets[presaleId][participants[i]], "Wallet is not in whitelist");
+            require(whitelistedWallets[presaleId][participants[i]], 'Wallet is not in whitelist');
             whitelistedWallets[presaleId][participants[i]] = false;
         }
     }
@@ -151,7 +151,7 @@ contract IDO is Ownable {
         address[] calldata tokens
     ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(whitelistedTokens[presaleId][tokens[i]], "Token is not in whitelist");
+            require(whitelistedTokens[presaleId][tokens[i]], 'Token is not in whitelist');
             whitelistedTokens[presaleId][tokens[i]] = false;
         }
     }
@@ -212,11 +212,11 @@ contract IDO is Ownable {
         uint256 totalClaimsSchedulePercentage = 0;
         for (uint256 i = 0; i < claimsSchedule.length; i++) {
             ClaimSchedule memory claimSchedule = claimsSchedule[i];
-            require(block.timestamp <= claimSchedule.availableFromDate, "Claim start date is incorrect");
+            require(block.timestamp <= claimSchedule.availableFromDate, 'Claim start date is incorrect');
 
             totalClaimsSchedulePercentage += claimSchedule.percentage;
         }
-        require(totalClaimsSchedulePercentage == 100, "Sum of claims schedule percentage should be 100");
+        require(totalClaimsSchedulePercentage == 100, 'Sum of claims schedule percentage should be 100');
     }
 
     function _validatePresaleInitialData(
@@ -229,12 +229,12 @@ contract IDO is Ownable {
         uint256 priceInUSDT
     ) private view {
         if (token == address(0)) revert CannotBeZero();
-        require(startDate >= block.timestamp, "Incorrect start date");
-        require(endDate > block.timestamp, "Incorrect end date");
-        require(totalTokensForSale > 0, "Total tokens for sale cannot be zero");
-        require(minAllocationAmount > 0, "Min allocation amount cannot be zero");
-        require(maxAllocationAmount > 0, "Max allocation amount cannot be zero");
-        require(priceInUSDT > 0, "Price in USDT cannot be zero");
+        require(startDate >= block.timestamp, 'Incorrect start date');
+        require(endDate > block.timestamp, 'Incorrect end date');
+        require(totalTokensForSale > 0, 'Total tokens for sale cannot be zero');
+        require(minAllocationAmount > 0, 'Min allocation amount cannot be zero');
+        require(maxAllocationAmount > 0, 'Max allocation amount cannot be zero');
+        require(priceInUSDT > 0, 'Price in USDT cannot be zero');
     }
 
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
