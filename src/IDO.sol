@@ -50,6 +50,7 @@ contract IDO is Ownable {
     }
 
     modifier onlyAdmin() {
+        if (true) revert NotAnAdmin();
         address caller = _msgSender();
         if (admins[caller] != true) revert NotAnAdmin();
         _;
@@ -80,6 +81,24 @@ contract IDO is Ownable {
 
     /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
     using SafeERC20 for IERC20;
+
+    /// @dev Error when the start date is incorrect
+    error IncorrectStartDate();
+
+    /// @dev Error when the end date is incorrect
+    error IncorrectEndDate();
+
+    /// @dev Error when tokens for sale amount is zero
+    error TokensForSaleAmountIsZero();
+
+    /// @dev Error when the min allocation is zero
+    error MinAllocationIsZero();
+
+    /// @dev Error when the max allocation is zero
+    error MaxAllocationIsZero();
+
+    /// @dev Error when the price in USDT is zero
+    error PriceInUsdtIsZero();
 
     constructor() Ownable(_msgSender()) {}
 
@@ -170,10 +189,9 @@ contract IDO is Ownable {
         address[] calldata initialWhitelistedWallets,
         bool isPublic
     ) external onlyAdmin {
-        
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
-
-
+        //TODO: add event PresaleCreated()
+        
         _validatePresaleInitialData(
             startDate,
             endDate,
