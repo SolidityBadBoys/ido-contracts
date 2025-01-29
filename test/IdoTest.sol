@@ -10,6 +10,23 @@ contract IdoTest is Test {
     IDO internal ido;
     Token internal presaleToken;
 
+    struct DefaultParams {
+        uint256 startDate;
+        uint256 endDate;
+        address token;
+        uint256 totalTokensForSale;
+        uint256 minAllocationAmount;
+        uint256 maxAllocationAmount;
+        uint256 claimStrategyId;
+        uint256 priceInUSDT;
+        bool isPublic;
+        IDO.ClaimSchedule[] claimsSchedule;
+        address[]  initialWhitelistedTokens;
+        address[]  initialWhitelistedWallets;
+    }
+
+    DefaultParams public defaultParams; 
+
     function fixture() internal {
         vm.startPrank(deployer);
 
@@ -17,14 +34,6 @@ contract IdoTest is Test {
 
         presaleToken = new Token();
 
-        presaleToken.transfer(bob, 1_000_000 * 1e18);
-
-        ido.setAdmin(admin);
-
-        vm.stopPrank();
-    }
-
-    function createPresale(bool isPublic) internal {
         IDO.ClaimSchedule[] memory claimsSchedule = new IDO.ClaimSchedule[](1);
         claimsSchedule[0] = IDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 10 });
 
@@ -37,28 +46,47 @@ contract IdoTest is Test {
         initialWhitelistedTokens[0] = ethToken;
         initialWhitelistedTokens[1] = usdtToken;
 
-        uint8 decimals = 18;
-        uint256 startDate = block.timestamp;
-        uint256 endDate = block.timestamp + 1 days;
-        address token = address(presaleToken);
-        uint256 totalTokensForSale = 1_000_000 * (10 ** decimals);
-        uint256 minAllocationAmount = 10;
-        uint256 maxAllocationAmount = 1000;
-        uint256 claimStrategyId = 1;
-        uint256 priceInUSDT = 1;
+        defaultParams = DefaultParams({
+            startDate: block.timestamp,
+            endDate: block.timestamp + 1 days,
+            token: address(presaleToken),
+            totalTokensForSale: 1_000_000 * (10 ** 18),
+            minAllocationAmount: 10,
+            maxAllocationAmount: 1000,
+            claimStrategyId: 1,
+            priceInUSDT: 1,
+            isPublic: true,
+            claimsSchedule: claimsSchedule,
+            initialWhitelistedTokens: initialWhitelistedTokens,
+            initialWhitelistedWallets: initialWhitelistedWallets
+        });
+
+
+
+        presaleToken.transfer(bob, 1_000_000 * 1e18);
+
+        ido.setAdmin(admin);
+
+        vm.stopPrank();
+    }
+
+    function createPresale(DefaultParams storage params) internal {
+
+
+
         ido.createPresale(
-            startDate,
-            endDate,
-            token,
-            totalTokensForSale,
-            minAllocationAmount,
-            maxAllocationAmount,
-            claimStrategyId,
-            priceInUSDT,
-            claimsSchedule,
-            initialWhitelistedTokens,
-            initialWhitelistedWallets,
-            isPublic
+            params.startDate,
+            params.endDate,
+            params.token,
+            params.totalTokensForSale,
+            params.minAllocationAmount,
+            params.maxAllocationAmount,
+            params.claimStrategyId,
+            params.priceInUSDT,
+            params.claimsSchedule,
+            params.initialWhitelistedTokens,
+            params.initialWhitelistedWallets,
+            params.isPublic
         );
     }
 }

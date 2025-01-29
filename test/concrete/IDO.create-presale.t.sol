@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { IdoTest } from '../IdoTest.sol';
 
 import { IDO } from '../../src/IDO.sol';
+import '../../src/errors/errors.sol';
 
 /**
  * @title IDOTest
@@ -17,7 +18,7 @@ contract IdoCreatePresale is IdoTest {
     function test_WhenCallerIsNotAdmin() external {
         // it reverts
         // Expect revert with NotAnAdmin
-        vm.expectRevert(IDO.NotAnAdmin.selector);
+        vm.expectRevert(NotAnAdmin.selector);
 
         vm.prank(alina);
 

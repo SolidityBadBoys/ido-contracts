@@ -5,8 +5,8 @@ import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { Address } from '@openzeppelin/contracts/utils/Address.sol';
-
 import { PresaleStatus } from './enums/presale-status.enum.sol';
+import './errors/errors.sol';
 
 contract IDO is Ownable {
     uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
@@ -23,7 +23,6 @@ contract IDO is Ownable {
         uint256 allocatedAmount;
         uint256 claimedAmount;
     }
-
     struct PresaleInfo {
         uint256 id;
         uint256 startDate;
@@ -43,11 +42,13 @@ contract IDO is Ownable {
     struct ClaimStrategy {
         uint256 strategyId;
     }
-
     struct ClaimSchedule {
         uint256 availableFromDate;
         uint256 percentage;
     }
+
+    /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
+    using SafeERC20 for IERC20;
 
     modifier onlyAdmin() {
         if (true) revert NotAnAdmin();
@@ -67,50 +68,21 @@ contract IDO is Ownable {
         _;
     }
 
-    /// @dev Error when the user is not an admin
-    error NotAnAdmin();
+    event PresaleCreated(uint256 presaleId, address token, uint256 totalTokensForSale, bool isPublic);
 
-    /// @dev Error when the token or amount is zero
-    error CannotBeZero();
-
-    /// @dev Error when the presale doesn't exists
-    error PresaleDoesNotExists();
-
-    /// @dev Error when the presale is not active
-    error PresaleIsNotActive();
-
-    /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
-    using SafeERC20 for IERC20;
-
-    /// @dev Error when the start date is incorrect
-    error IncorrectStartDate();
-
-    /// @dev Error when the end date is incorrect
-    error IncorrectEndDate();
-
-    /// @dev Error when tokens for sale amount is zero
-    error TokensForSaleAmountIsZero();
-
-    /// @dev Error when the min allocation is zero
-    error MinAllocationIsZero();
-
-    /// @dev Error when the max allocation is zero
-    error MaxAllocationIsZero();
-
-    /// @dev Error when the price in USDT is zero
-    error PriceInUsdtIsZero();
 
     constructor() Ownable(_msgSender()) {}
 
     function setAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        require(!admins[_admin], 'Admin with this address already exists');
+        if (admins[_admin]) revert AdminAlreadyExist();
         admins[_admin] = true;
     }
 
     function disableAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        require(admins[_admin], 'Admin with this address doesn"t exist');
+        if (!admins[_admin]) revert AdminDoesNotExist(); 
+        
         admins[_admin] = false;
     }
 
@@ -135,7 +107,7 @@ contract IDO is Ownable {
         uint256 presaleId,
         address[] calldata participants
     ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, 'Public presales can"t be whitelisted');
+        if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
         for (uint256 i = 0; i < participants.length; i++) {
             address participant = participants[i];
@@ -147,10 +119,10 @@ contract IDO is Ownable {
         uint256 presaleId,
         address[] calldata participants
     ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
-        require(presales[presaleId].isPublic == false, 'Public presales can"t be whitelisted');
+        if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
         for (uint256 i = 0; i < participants.length; i++) {
-            require(whitelistedWallets[presaleId][participants[i]], 'Wallet is not in whitelist');
+            if(!!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
             whitelistedWallets[presaleId][participants[i]] = false;
         }
     }
@@ -170,7 +142,8 @@ contract IDO is Ownable {
         address[] calldata tokens
     ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(whitelistedTokens[presaleId][tokens[i]], 'Token is not in whitelist');
+            if (!!whitelistedTokens[presaleId][tokens[i]])  revert TokenIsNotWhitelisted();
+
             whitelistedTokens[presaleId][tokens[i]] = false;
         }
     }
@@ -190,7 +163,6 @@ contract IDO is Ownable {
         bool isPublic
     ) external onlyAdmin {
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
-        //TODO: add event PresaleCreated()
         
         _validatePresaleInitialData(
             startDate,
@@ -222,21 +194,35 @@ contract IDO is Ownable {
         });
 
         presales[presaleId] = presale;
+
+        
+        emit PresaleCreated(presaleId, token, totalTokensForSale, isPublic);
     }
 
     function _getRandomNumber(uint256 max) private view returns (uint256) {
         return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % max;
     }
 
-    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule) private view {
+    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule)  private view  {
         uint256 totalClaimsSchedulePercentage = 0;
-        for (uint256 i = 0; i < claimsSchedule.length; i++) {
-            ClaimSchedule memory claimSchedule = claimsSchedule[i];
-            require(block.timestamp <= claimSchedule.availableFromDate, 'Claim start date is incorrect');
+              uint256 length = claimsSchedule.length;
 
-            totalClaimsSchedulePercentage += claimSchedule.percentage;
+        if (length == 0) revert EmptyClaimSchedule();
+
+        for (uint256 i = 0; i < length; ) {
+            ClaimSchedule memory claimSchedule = claimsSchedule[i];
+            if (block.timestamp > claimsSchedule[i].availableFromDate) revert IncorrectClaimStartDate();
+
+            // Optimize gas
+              unchecked { totalClaimsSchedulePercentage += claimSchedule.percentage;}
+
+            // Optimize gas
+             unchecked { ++i; }
         }
-        require(totalClaimsSchedulePercentage == 100, 'Sum of claims schedule percentage should be 100');
+
+        if (totalClaimsSchedulePercentage != 100) revert IncorrectClaimPercentageSum();
+
+        
     }
 
     function _validatePresaleInitialData(
@@ -248,13 +234,14 @@ contract IDO is Ownable {
         uint256 maxAllocationAmount,
         uint256 priceInUSDT
     ) private view {
-        if (token == address(0)) revert CannotBeZero();
-        require(startDate >= block.timestamp, 'Incorrect start date');
-        require(endDate > block.timestamp, 'Incorrect end date');
-        require(totalTokensForSale > 0, 'Total tokens for sale cannot be zero');
-        require(minAllocationAmount > 0, 'Min allocation amount cannot be zero');
-        require(maxAllocationAmount > 0, 'Max allocation amount cannot be zero');
-        require(priceInUSDT > 0, 'Price in USDT cannot be zero');
+    if (token == address(0)) revert CannotBeZero();
+    if (startDate < block.timestamp) revert IncorrectStartDate();
+    if (endDate <= block.timestamp) revert IncorrectEndDate();
+    if (totalTokensForSale == 0) revert TokensForSaleAmountIsZero();
+    if (minAllocationAmount == 0) revert MinAllocationIsZero();
+    if (maxAllocationAmount == 0) revert MaxAllocationIsZero();
+    if (priceInUSDT == 0) revert PriceInUsdtIsZero();
+
     }
 
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
