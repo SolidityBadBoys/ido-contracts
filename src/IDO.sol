@@ -6,23 +6,15 @@ import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { Address } from '@openzeppelin/contracts/utils/Address.sol';
 import { PresaleStatus } from './enums/presale-status.enum.sol';
+
 import './errors/errors.sol';
 
 contract IDO is Ownable {
-    uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
+    constructor() Ownable(_msgSender()) {}
 
-    mapping(address => bool) public admins;
-    mapping(uint256 claimStrategyId => ClaimStrategy) public claimStrategies;
-    mapping(uint256 presaleId => PresaleInfo) public presales;
-    mapping(address => Balance[]) public contributions;
-    mapping(uint256 presaleId => mapping(address => bool)) public whitelistedTokens;
-    mapping(uint256 presaleId => mapping(address => bool)) public whitelistedWallets;
+    /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
+    using SafeERC20 for IERC20;
 
-    struct Balance {
-        uint256 presaleId;
-        uint256 allocatedAmount;
-        uint256 claimedAmount;
-    }
     struct PresaleInfo {
         uint256 id;
         uint256 startDate;
@@ -39,24 +31,39 @@ contract IDO is Ownable {
         bool isExists;
     }
 
+    struct Balance {
+        uint256 presaleId;
+        uint256 allocatedAmount;
+        uint256 claimedAmount;
+    }
+
     struct ClaimStrategy {
         uint256 strategyId;
     }
+
     struct ClaimSchedule {
         uint256 availableFromDate;
         uint256 percentage;
     }
 
-    /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
-    using SafeERC20 for IERC20;
+    event PresaleCreated(uint256 indexed presaleId, address token, uint256 totalTokensForSale, bool isPublic);
 
+    uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
+    mapping(address => bool) public admins;
+    mapping(uint256 claimStrategyId => ClaimStrategy) public claimStrategies;
+    mapping(uint256 presaleId => PresaleInfo) public presales;
+    mapping(address => Balance[]) public contributions;
+    mapping(uint256 presaleId => mapping(address => bool)) public whitelistedTokens;
+    mapping(uint256 presaleId => mapping(address => bool)) public whitelistedWallets;
+
+    //use openzeppelin roles
     modifier onlyAdmin() {
-        if (true) revert NotAnAdmin();
         address caller = _msgSender();
         if (admins[caller] != true) revert NotAnAdmin();
         _;
     }
 
+    // make as function
     modifier arrayNotEmpty(address[] calldata array) {
         require(array.length > 0, 'Array is empty');
         _;
@@ -68,11 +75,6 @@ contract IDO is Ownable {
         _;
     }
 
-    event PresaleCreated(uint256 presaleId, address token, uint256 totalTokensForSale, bool isPublic);
-
-
-    constructor() Ownable(_msgSender()) {}
-
     function setAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
         if (admins[_admin]) revert AdminAlreadyExist();
@@ -81,8 +83,8 @@ contract IDO is Ownable {
 
     function disableAdmin(address _admin) external onlyOwner {
         if (_admin == address(0)) revert CannotBeZero();
-        if (!admins[_admin]) revert AdminDoesNotExist(); 
-        
+        if (!admins[_admin]) revert AdminDoesNotExist();
+
         admins[_admin] = false;
     }
 
@@ -122,7 +124,7 @@ contract IDO is Ownable {
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
         for (uint256 i = 0; i < participants.length; i++) {
-            if(!!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
+            if (!!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
             whitelistedWallets[presaleId][participants[i]] = false;
         }
     }
@@ -142,15 +144,17 @@ contract IDO is Ownable {
         address[] calldata tokens
     ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (!!whitelistedTokens[presaleId][tokens[i]])  revert TokenIsNotWhitelisted();
+            if (!!whitelistedTokens[presaleId][tokens[i]]) revert TokenIsNotWhitelisted();
 
             whitelistedTokens[presaleId][tokens[i]] = false;
         }
     }
 
     function createPresale(
+        // make as struct
         uint256 startDate,
         uint256 endDate,
+        //
         address token,
         uint256 totalTokensForSale,
         uint256 minAllocationAmount,
@@ -163,7 +167,7 @@ contract IDO is Ownable {
         bool isPublic
     ) external onlyAdmin {
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
-        
+
         _validatePresaleInitialData(
             startDate,
             endDate,
@@ -195,7 +199,6 @@ contract IDO is Ownable {
 
         presales[presaleId] = presale;
 
-        
         emit PresaleCreated(presaleId, token, totalTokensForSale, isPublic);
     }
 
@@ -203,9 +206,9 @@ contract IDO is Ownable {
         return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % max;
     }
 
-    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule)  private view  {
+    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule) private view {
         uint256 totalClaimsSchedulePercentage = 0;
-              uint256 length = claimsSchedule.length;
+        uint256 length = claimsSchedule.length;
 
         if (length == 0) revert EmptyClaimSchedule();
 
@@ -214,15 +217,17 @@ contract IDO is Ownable {
             if (block.timestamp > claimsSchedule[i].availableFromDate) revert IncorrectClaimStartDate();
 
             // Optimize gas
-              unchecked { totalClaimsSchedulePercentage += claimSchedule.percentage;}
+            unchecked {
+                totalClaimsSchedulePercentage += claimSchedule.percentage;
+            }
 
             // Optimize gas
-             unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         if (totalClaimsSchedulePercentage != 100) revert IncorrectClaimPercentageSum();
-
-        
     }
 
     function _validatePresaleInitialData(
@@ -234,14 +239,13 @@ contract IDO is Ownable {
         uint256 maxAllocationAmount,
         uint256 priceInUSDT
     ) private view {
-    if (token == address(0)) revert CannotBeZero();
-    if (startDate < block.timestamp) revert IncorrectStartDate();
-    if (endDate <= block.timestamp) revert IncorrectEndDate();
-    if (totalTokensForSale == 0) revert TokensForSaleAmountIsZero();
-    if (minAllocationAmount == 0) revert MinAllocationIsZero();
-    if (maxAllocationAmount == 0) revert MaxAllocationIsZero();
-    if (priceInUSDT == 0) revert PriceInUsdtIsZero();
-
+        if (token == address(0)) revert CannotBeZero();
+        if (startDate < block.timestamp) revert IncorrectStartDate();
+        if (endDate <= block.timestamp) revert IncorrectEndDate();
+        if (totalTokensForSale == 0) revert TokensForSaleAmountIsZero();
+        if (minAllocationAmount == 0) revert MinAllocationIsZero();
+        if (maxAllocationAmount == 0) revert MaxAllocationIsZero();
+        if (priceInUSDT == 0) revert PriceInUsdtIsZero();
     }
 
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {

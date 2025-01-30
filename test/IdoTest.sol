@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { Test } from './Test.sol';
-
 import { IDO } from '../src/IDO.sol';
 import { Token } from '../src/Token.sol';
 
@@ -21,11 +20,11 @@ contract IdoTest is Test {
         uint256 priceInUSDT;
         bool isPublic;
         IDO.ClaimSchedule[] claimsSchedule;
-        address[]  initialWhitelistedTokens;
-        address[]  initialWhitelistedWallets;
+        address[] initialWhitelistedTokens;
+        address[] initialWhitelistedWallets;
     }
 
-    DefaultParams public defaultParams; 
+    DefaultParams public defaultParams;
 
     function fixture() internal {
         vm.startPrank(deployer);
@@ -61,8 +60,6 @@ contract IdoTest is Test {
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
-
-
         presaleToken.transfer(bob, 1_000_000 * 1e18);
 
         ido.setAdmin(admin);
@@ -71,9 +68,6 @@ contract IdoTest is Test {
     }
 
     function createPresale(DefaultParams storage params) internal {
-
-
-
         ido.createPresale(
             params.startDate,
             params.endDate,

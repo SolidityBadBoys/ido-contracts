@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { IdoTest } from '../IdoTest.sol';
-
 import { IDO } from '../../src/IDO.sol';
 import '../../src/errors/errors.sol';
 
