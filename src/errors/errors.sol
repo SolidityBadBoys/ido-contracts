@@ -54,3 +54,6 @@ error AdminAlreadyExist();
 
 /// @dev Error when admin doesn't exists.
 error AdminDoesNotExist();
+
+/// @dev Error when some array is empty.
+error ArrayIsEmpty();

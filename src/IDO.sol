@@ -1,73 +1,29 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
+import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { Address } from '@openzeppelin/contracts/utils/Address.sol';
+
 import { PresaleStatus } from './enums/presale-status.enum.sol';
-
 import './errors/errors.sol';
+import './interfaces/IDO.interface.sol';
 
-contract IDO is Ownable {
-    constructor() Ownable(_msgSender()) {}
-
+contract IDO is IIDO, Ownable, AccessControl {
     /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
     using SafeERC20 for IERC20;
 
-    struct PresaleInfo {
-        uint256 id;
-        uint256 startDate;
-        uint256 endDate;
-        address token;
-        uint256 totalTokensForSale;
-        uint256 minAllocationAmount;
-        uint256 maxAllocationAmount;
-        PresaleStatus status;
-        bool isPublic;
-        uint256 claimStrategyId;
-        uint256 priceInUSDT;
-        ClaimSchedule[] claimsSchedule;
-        bool isExists;
-    }
-
-    struct Balance {
-        uint256 presaleId;
-        uint256 allocatedAmount;
-        uint256 claimedAmount;
-    }
-
-    struct ClaimStrategy {
-        uint256 strategyId;
-    }
-
-    struct ClaimSchedule {
-        uint256 availableFromDate;
-        uint256 percentage;
-    }
-
-    event PresaleCreated(uint256 indexed presaleId, address token, uint256 totalTokensForSale, bool isPublic);
+    bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
     uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
-    mapping(address => bool) public admins;
+
     mapping(uint256 claimStrategyId => ClaimStrategy) public claimStrategies;
     mapping(uint256 presaleId => PresaleInfo) public presales;
     mapping(address => Balance[]) public contributions;
     mapping(uint256 presaleId => mapping(address => bool)) public whitelistedTokens;
     mapping(uint256 presaleId => mapping(address => bool)) public whitelistedWallets;
-
-    //use openzeppelin roles
-    modifier onlyAdmin() {
-        address caller = _msgSender();
-        if (admins[caller] != true) revert NotAnAdmin();
-        _;
-    }
-
-    // make as function
-    modifier arrayNotEmpty(address[] calldata array) {
-        require(array.length > 0, 'Array is empty');
-        _;
-    }
 
     modifier onlyActivePresale(uint256 presaleId) {
         if (!presales[presaleId].isExists) revert PresaleDoesNotExists();
@@ -75,18 +31,11 @@ contract IDO is Ownable {
         _;
     }
 
-    function setAdmin(address _admin) external onlyOwner {
-        if (_admin == address(0)) revert CannotBeZero();
-        if (admins[_admin]) revert AdminAlreadyExist();
-        admins[_admin] = true;
+    constructor() Ownable(_msgSender()) {
+                
     }
 
-    function disableAdmin(address _admin) external onlyOwner {
-        if (_admin == address(0)) revert CannotBeZero();
-        if (!admins[_admin]) revert AdminDoesNotExist();
-
-        admins[_admin] = false;
-    }
+    //not an admin throw AccessControlUnauthorizedAccount();
 
     function withdraw(address token, uint256 amount, address recipient) external onlyOwner {
         if (recipient == address(0)) revert CannotBeZero();
@@ -98,7 +47,7 @@ contract IDO is Ownable {
         }
     }
 
-    function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyAdmin {
+    function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyRole(ADMIN_ROLE) {
         PresaleInfo storage presale = presales[presaleId];
         if (!presale.isExists) revert PresaleDoesNotExists();
 
@@ -108,7 +57,9 @@ contract IDO is Ownable {
     function addParticipantsToWhitelist(
         uint256 presaleId,
         address[] calldata participants
-    ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
+    ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
+        _validateAddressesArray(participants);
+
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
         for (uint256 i = 0; i < participants.length; i++) {
@@ -120,11 +71,13 @@ contract IDO is Ownable {
     function disableParticipantsInWhitelist(
         uint256 presaleId,
         address[] calldata participants
-    ) external onlyAdmin arrayNotEmpty(participants) onlyActivePresale(presaleId) {
+    ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
+        _validateAddressesArray(participants);
+
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
         for (uint256 i = 0; i < participants.length; i++) {
-            if (!!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
+            if (!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
             whitelistedWallets[presaleId][participants[i]] = false;
         }
     }
@@ -132,7 +85,9 @@ contract IDO is Ownable {
     function addTokensToWhitelist(
         uint256 presaleId,
         address[] calldata tokens
-    ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
+    ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
+        _validateAddressesArray(tokens);
+
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
             whitelistedTokens[presaleId][token] = true;
@@ -142,9 +97,11 @@ contract IDO is Ownable {
     function disableTokensInWhitelist(
         uint256 presaleId,
         address[] calldata tokens
-    ) external onlyAdmin arrayNotEmpty(tokens) onlyActivePresale(presaleId) {
+    ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
+        _validateAddressesArray(tokens);
+
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (!!whitelistedTokens[presaleId][tokens[i]]) revert TokenIsNotWhitelisted();
+            if (!whitelistedTokens[presaleId][tokens[i]]) revert TokenIsNotWhitelisted();
 
             whitelistedTokens[presaleId][tokens[i]] = false;
         }
@@ -165,7 +122,7 @@ contract IDO is Ownable {
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets,
         bool isPublic
-    ) external onlyAdmin {
+    ) onlyRole(ADMIN_ROLE) external {
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
 
         _validatePresaleInitialData(
@@ -263,4 +220,9 @@ contract IDO is Ownable {
             whitelistedWallets[presaleId][wallet] = true;
         }
     }
+
+    function _validateAddressesArray(address[] calldata array) private pure {
+        if (array.length <= 0) revert ArrayIsEmpty();
+    }
+ 
 }
