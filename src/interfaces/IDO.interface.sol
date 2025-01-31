@@ -2,9 +2,22 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+
 import { PresaleStatus } from '../enums/presale-status.enum.sol';
 
 interface IIDO {
+    struct CreatePresaleParams {
+        uint256 startDate;
+        uint256 endDate;
+        address token;
+        uint256 totalTokensForSale;
+        uint256 minAllocationAmount;
+        uint256 maxAllocationAmount;
+        uint256 claimStrategyId;
+        uint256 priceInUSDT;
+        bool isPublic;
+    }
+
     struct PresaleInfo {
         uint256 id;
         uint256 startDate;
@@ -45,18 +58,11 @@ interface IIDO {
     function addTokensToWhitelist(uint256 presaleId, address[] calldata tokens) external;
     function disableTokensInWhitelist(uint256 presaleId, address[] calldata tokens) external;
     function createPresale(
-        uint256 startDate,
-        uint256 endDate,
-        address token,
-        uint256 totalTokensForSale,
-        uint256 minAllocationAmount,
-        uint256 maxAllocationAmount,
-        uint256 claimStrategyId,
-        uint256 priceInUSDT,
+        CreatePresaleParams calldata presaleParams,
         ClaimSchedule[] calldata claimsSchedule,
         address[] calldata initialWhitelistedTokens,
-        address[] calldata initialWhitelistedWallets,
-        bool isPublic
+        address[] calldata initialWhitelistedWallets
+
     ) external;
 
     // function getPresaleInfo(uint256 presaleId) external view returns (PresaleInfo memory);

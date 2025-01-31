@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
+// import { AccessControlDefaultAdminRules } from '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
+
 import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -32,10 +34,8 @@ contract IDO is IIDO, Ownable, AccessControl {
     }
 
     constructor() Ownable(_msgSender()) {
-                
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
-
-    //not an admin throw AccessControlUnauthorizedAccount();
 
     function withdraw(address token, uint256 amount, address recipient) external onlyOwner {
         if (recipient == address(0)) revert CannotBeZero();
@@ -108,31 +108,21 @@ contract IDO is IIDO, Ownable, AccessControl {
     }
 
     function createPresale(
-        // make as struct
-        uint256 startDate,
-        uint256 endDate,
-        //
-        address token,
-        uint256 totalTokensForSale,
-        uint256 minAllocationAmount,
-        uint256 maxAllocationAmount,
-        uint256 claimStrategyId,
-        uint256 priceInUSDT,
+        CreatePresaleParams calldata presaleParams,
         ClaimSchedule[] calldata claimsSchedule,
         address[] calldata initialWhitelistedTokens,
-        address[] calldata initialWhitelistedWallets,
-        bool isPublic
-    ) onlyRole(ADMIN_ROLE) external {
+        address[] calldata initialWhitelistedWallets
+    ) external onlyRole(ADMIN_ROLE)  {
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
 
         _validatePresaleInitialData(
-            startDate,
-            endDate,
-            token,
-            totalTokensForSale,
-            minAllocationAmount,
-            maxAllocationAmount,
-            priceInUSDT
+            presaleParams.startDate,
+            presaleParams.endDate,
+            presaleParams.token,
+            presaleParams.totalTokensForSale,
+            presaleParams.minAllocationAmount,
+            presaleParams.maxAllocationAmount,
+            presaleParams.priceInUSDT
         );
         _validateSchedule(claimsSchedule);
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
@@ -140,27 +130,27 @@ contract IDO is IIDO, Ownable, AccessControl {
 
         PresaleInfo memory presale = PresaleInfo({
             id: presaleId,
-            startDate: startDate,
-            endDate: endDate,
-            token: token,
-            totalTokensForSale: totalTokensForSale,
-            minAllocationAmount: minAllocationAmount,
-            maxAllocationAmount: maxAllocationAmount,
+            startDate: presaleParams.startDate,
+            endDate: presaleParams.endDate,
+            token: presaleParams.token,
+            totalTokensForSale: presaleParams.totalTokensForSale,
+            minAllocationAmount: presaleParams.minAllocationAmount,
+            maxAllocationAmount: presaleParams.maxAllocationAmount,
             status: PresaleStatus.ACTIVE,
-            isPublic: isPublic,
-            claimStrategyId: claimStrategyId,
-            priceInUSDT: priceInUSDT,
+            isPublic: presaleParams.isPublic,
+            claimStrategyId: presaleParams.claimStrategyId,
+            priceInUSDT: presaleParams.priceInUSDT,
             claimsSchedule: claimsSchedule,
             isExists: true
         });
 
         presales[presaleId] = presale;
 
-        emit PresaleCreated(presaleId, token, totalTokensForSale, isPublic);
+        emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalTokensForSale, presaleParams.isPublic);
     }
 
     function _getRandomNumber(uint256 max) private view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % max;
+        return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _msgSender()))) % max;
     }
 
     function _validateSchedule(ClaimSchedule[] calldata claimsSchedule) private view {
