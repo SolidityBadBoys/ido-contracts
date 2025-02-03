@@ -62,7 +62,6 @@ interface IIDO {
         ClaimSchedule[] calldata claimsSchedule,
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets
-
     ) external;
 
     // function getPresaleInfo(uint256 presaleId) external view returns (PresaleInfo memory);

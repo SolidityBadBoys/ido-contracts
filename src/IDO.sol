@@ -112,7 +112,7 @@ contract IDO is IIDO, Ownable, AccessControl {
         ClaimSchedule[] calldata claimsSchedule,
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets
-    ) external onlyRole(ADMIN_ROLE)  {
+    ) external onlyRole(ADMIN_ROLE) {
         uint256 presaleId = _getRandomNumber(MAX_VALUE_OF_ID);
 
         _validatePresaleInitialData(
@@ -214,5 +214,4 @@ contract IDO is IIDO, Ownable, AccessControl {
     function _validateAddressesArray(address[] calldata array) private pure {
         if (array.length <= 0) revert ArrayIsEmpty();
     }
- 
 }

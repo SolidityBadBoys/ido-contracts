@@ -19,7 +19,9 @@ contract IdoCreatePresale is IdoTest {
     function test_WhenCallerIsNotAdmin() external {
         // it reverts
         // Expect revert with AccessControlUnauthorizedAccount
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alina, ido.ADMIN_ROLE()));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alina, ido.ADMIN_ROLE())
+        );
 
         vm.prank(alina);
 

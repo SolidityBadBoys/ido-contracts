@@ -48,14 +48,14 @@ contract IdoTest is Test {
                 claimStrategyId: 1,
                 priceInUSDT: 1,
                 isPublic: true
-                }),
+            }),
             claimsSchedule: claimsSchedule,
             initialWhitelistedTokens: initialWhitelistedTokens,
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
         presaleToken.transfer(bob, 1_000_000 * 1e18);
-        
+
         ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();
     }
