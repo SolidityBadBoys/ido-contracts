@@ -26,7 +26,7 @@ contract IdoTest is Test {
         presaleToken = new Token();
 
         IIDO.ClaimSchedule[] memory claimsSchedule = new IDO.ClaimSchedule[](1);
-        claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 10 });
+        claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 100 });
 
         address[] memory initialWhitelistedTokens = new address[](2);
         address[] memory initialWhitelistedWallets;

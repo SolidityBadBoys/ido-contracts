@@ -126,7 +126,10 @@ contract IDO is IIDO, Ownable, AccessControl {
         );
         _validateSchedule(claimsSchedule);
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
-        _addWhitelistedWallets(presaleId, initialWhitelistedWallets);
+        
+        if (presaleParams.isPublic == false) {
+            _addWhitelistedWallets(presaleId, initialWhitelistedWallets);   
+        }
 
         PresaleInfo memory presale = PresaleInfo({
             id: presaleId,
@@ -198,7 +201,6 @@ contract IDO is IIDO, Ownable, AccessControl {
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
-            if (token == address(0)) revert CannotBeZero();
             whitelistedTokens[presaleId][token] = true;
         }
     }
