@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
-
-// import { AccessControlDefaultAdminRules } from '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
-
-import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
+ import { ERC20Burnable } from '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { Address } from '@openzeppelin/contracts/utils/Address.sol';
@@ -21,6 +19,8 @@ contract IDO is IIDO, Ownable, AccessControl {
 
     uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
 
+    IERC20 public immutable USDT_CONTRACT_ADDRESS;
+
     mapping(uint256 claimStrategyId => ClaimStrategy) public claimStrategies;
     mapping(uint256 presaleId => PresaleInfo) public presales;
     mapping(address => Balance[]) public contributions;
@@ -33,7 +33,16 @@ contract IDO is IIDO, Ownable, AccessControl {
         _;
     }
 
-    constructor() Ownable(_msgSender()) {
+    constructor(address usdtContractAddress) Ownable(_msgSender()) {
+        if (!isContract(usdtContractAddress)) revert AddressIsNotContract();
+        
+        try IERC20(usdtContractAddress).totalSupply() returns (uint256 totalSupply) {
+            
+        } catch {
+            revert AddressIsNotErc20();
+        }
+        
+        USDT_CONTRACT_ADDRESS = IERC20(usdtContractAddress);
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
@@ -90,6 +99,7 @@ contract IDO is IIDO, Ownable, AccessControl {
 
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
+            _validateToken(token);
             whitelistedTokens[presaleId][token] = true;
         }
     }
@@ -201,6 +211,7 @@ contract IDO is IIDO, Ownable, AccessControl {
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
+            _validateToken(token);
             whitelistedTokens[presaleId][token] = true;
         }
     }
@@ -215,5 +226,26 @@ contract IDO is IIDO, Ownable, AccessControl {
 
     function _validateAddressesArray(address[] calldata array) private pure {
         if (array.length <= 0) revert ArrayIsEmpty();
+    }
+
+    function burnTokens(address token, uint256 amount) external onlyOwner {
+        if (amount == 0) revert CannotBeZero();
+        if (IERC20(token).balanceOf(msg.sender) < amount) revert InsufficientBalance();
+
+        ERC20Burnable(token).burn(amount);
+    }
+
+    function _validateToken(address token)  private view {
+        if (token != address(0) && token != address(USDT_CONTRACT_ADDRESS)) revert NonAvailablePresaleToken();
+    }
+ 
+
+
+    function isContract(address _addr) private view returns (bool){
+        uint32 size;
+        assembly {
+            size := extcodesize(_addr)
+        }
+        return (size > 0);
     }
 }

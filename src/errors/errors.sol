@@ -57,3 +57,15 @@ error AdminDoesNotExist();
 
 /// @dev Error when some array is empty.
 error ArrayIsEmpty();
+
+/// @dev Error when owner attempts to burn tokens more than he has.
+error InsufficientBalance();
+
+/// @dev Error when address is not contract.
+error AddressIsNotContract();
+
+/// @dev Error when address is not ERC20 contract.
+error AddressIsNotErc20();
+
+/// @dev Error when try to add not eth or usdt address.
+error NonAvailablePresaleToken();
