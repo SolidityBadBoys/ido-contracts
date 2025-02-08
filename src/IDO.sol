@@ -37,9 +37,9 @@ contract IDO is IIDO, Ownable, AccessControl {
         if (!isContract(usdtContractAddress)) revert AddressIsNotContract();
         
         try IERC20(usdtContractAddress).totalSupply() returns (uint256 totalSupply) {
-            
+            totalSupply;
         } catch {
-            revert AddressIsNotErc20();
+            revert AddressIsNonErc20();
         }
         
         USDT_CONTRACT_ADDRESS = IERC20(usdtContractAddress);
@@ -230,7 +230,7 @@ contract IDO is IIDO, Ownable, AccessControl {
 
     function burnTokens(address token, uint256 amount) external onlyOwner {
         if (amount == 0) revert CannotBeZero();
-        if (IERC20(token).balanceOf(msg.sender) < amount) revert InsufficientBalance();
+        if (IERC20(token).balanceOf(address(this)) < amount) revert InsufficientBalance();
 
         ERC20Burnable(token).burn(amount);
     }

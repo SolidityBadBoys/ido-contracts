@@ -65,7 +65,7 @@ error InsufficientBalance();
 error AddressIsNotContract();
 
 /// @dev Error when address is not ERC20 contract.
-error AddressIsNotErc20();
+error AddressIsNonErc20();
 
 /// @dev Error when try to add not eth or usdt address.
 error NonAvailablePresaleToken();

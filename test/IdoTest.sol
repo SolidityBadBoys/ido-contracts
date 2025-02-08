@@ -21,7 +21,9 @@ contract IdoTest is Test {
     function fixture() internal {
         vm.startPrank(deployer);
 
-        ido = new IDO();
+        Token usdtToken = new Token();
+
+        ido = new IDO(address(usdtToken));
 
         presaleToken = new Token();
 
@@ -32,10 +34,9 @@ contract IdoTest is Test {
         address[] memory initialWhitelistedWallets;
 
         address ethToken = address(0);
-        address usdtToken = vm.envAddress('USDT_CONTRACT_ADDRESS');
 
         initialWhitelistedTokens[0] = ethToken;
-        initialWhitelistedTokens[1] = usdtToken;
+        initialWhitelistedTokens[1] = address(usdtToken);
 
         defaultParams = DefaultParams({
             presaleParams: IIDO.CreatePresaleParams({

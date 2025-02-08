@@ -9,6 +9,7 @@ import { IdoTest } from '../IdoTest.sol';
 import { IDO } from '../../src/IDO.sol';
 import '../../src/errors/errors.sol';
 import { IIDO } from '../../src/interfaces/IDO.interface.sol';
+import { MockNonErc20Token } from '../../src/MockNonErc20Token.sol';
 
 
 /**
@@ -83,6 +84,7 @@ contract IdoCreatePresale is IdoTest {
         );
         vm.prank(alina);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenStartDateIsInPast() external {
@@ -90,6 +92,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(IncorrectStartDate.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenEndDateIsBeforeStartDate() external {
@@ -97,6 +100,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(IncorrectEndDate.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenTokenAddressIsZero() external {
@@ -104,6 +108,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(CannotBeZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenTotalTokensForSaleIsZero() external {
@@ -111,6 +116,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(TokensForSaleAmountIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenMinAllocationIsZero() external {
@@ -118,6 +124,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(MinAllocationIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     function test_WhenMaxAllocationIsZero() external {
@@ -125,6 +132,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(MaxAllocationIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
     
     function test_WhenPriceInUsdtIsZero() external {
@@ -132,6 +140,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(PriceInUsdtIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
 
@@ -140,6 +149,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(EmptyClaimSchedule.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     
@@ -148,6 +158,7 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(IncorrectClaimStartDate.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
     }
 
     
@@ -156,5 +167,16 @@ contract IdoCreatePresale is IdoTest {
         vm.expectRevert(abi.encodeWithSelector(IncorrectClaimPercentageSum.selector));
         vm.prank(admin);
         createPresale(defaultParams);
+        vm.stopPrank();
+    }
+
+        
+    function test_WhenIsNotUsdtOrEth() external {
+        MockNonErc20Token nonErc20Token = new MockNonErc20Token();
+        defaultParams.initialWhitelistedTokens[0] = address(nonErc20Token);
+        vm.expectRevert(abi.encodeWithSelector(NonAvailablePresaleToken.selector));
+        vm.prank(admin);
+        createPresale(defaultParams);
+        vm.stopPrank();
     }
 }
