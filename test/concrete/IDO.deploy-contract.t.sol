@@ -33,7 +33,7 @@ contract IdoDeployContract is IdoTest {
     function test_WhenIdoInitialAddressIsNonErc20() external {    
         vm.startPrank(deployer);
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();
-                vm.expectRevert(abi.encodeWithSelector(AddressIsNonErc20.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressIsNonErc20.selector));
         new IDO(address(nonErc20Token));
         vm.stopPrank();
     }

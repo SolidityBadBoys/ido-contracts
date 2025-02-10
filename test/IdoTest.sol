@@ -5,10 +5,12 @@ import { Test } from './Test.sol';
 import { IIDO } from '../src/interfaces/IDO.interface.sol';
 import { IDO } from '../src/IDO.sol';
 import { Token } from '../src/Token.sol';
+import { PresaleStatus } from '../src/enums/presale-status.enum.sol';
 
 contract IdoTest is Test {
     IDO internal ido;
     Token internal presaleToken;
+
     struct DefaultParams {
         IIDO.CreatePresaleParams presaleParams;
         IIDO.ClaimSchedule[] claimsSchedule;
@@ -43,7 +45,7 @@ contract IdoTest is Test {
                 startDate: block.timestamp,
                 endDate: block.timestamp + 1 days,
                 token: address(presaleToken),
-                totalTokensForSale: 1_000_000 * (10 ** 18),
+                totalSupply: 1_000_000 * (10 ** 18),
                 minAllocationAmount: 10,
                 maxAllocationAmount: 1000,
                 claimStrategyId: 1,

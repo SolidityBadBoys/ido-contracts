@@ -26,7 +26,7 @@ contract IdoCreatePresale is IdoTest {
 
         vm.expectEmit(false, false, false, true);
         
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalTokensForSale, defaultParams.presaleParams.isPublic);
+        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
 
         createPresale(defaultParams);
 
@@ -40,7 +40,7 @@ contract IdoCreatePresale is IdoTest {
 
         vm.expectEmit(false, false, false, true);
         
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalTokensForSale, defaultParams.presaleParams.isPublic);
+        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
 
         createPresale(defaultParams);
 
@@ -59,7 +59,7 @@ contract IdoCreatePresale is IdoTest {
     
         vm.expectEmit(false, false, false, true);
         
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalTokensForSale, defaultParams.presaleParams.isPublic);
+        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
 
         vm.recordLogs();
         createPresale(defaultParams);
@@ -111,8 +111,8 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-    function test_WhenTotalTokensForSaleIsZero() external {
-        defaultParams.presaleParams.totalTokensForSale = 0; 
+    function test_WhenTotalSupplyIsZero() external {
+        defaultParams.presaleParams.totalSupply = 0; 
         vm.expectRevert(abi.encodeWithSelector(TokensForSaleAmountIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
@@ -170,7 +170,7 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-        
+
     function test_WhenIsNotUsdtOrEth() external {
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();
         defaultParams.initialWhitelistedTokens[0] = address(nonErc20Token);

@@ -56,6 +56,18 @@ contract IDO is IIDO, Ownable, AccessControl {
         }
     }
 
+    function deposit(uint256 presaleId, uint256 amount) external onlyOwner {
+        if (amount == 0) revert CannotBeZero();
+
+        PresaleInfo storage presale = presales[presaleId];
+        if (!presale.isExists) revert PresaleDoesNotExists();
+
+        presale.status = PresaleStatus.ACTIVE;
+        presale.isDeposited = true;
+        
+        emit TokensDeposited(presaleId, presale.token, amount);
+    }
+
     function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyRole(ADMIN_ROLE) {
         PresaleInfo storage presale = presales[presaleId];
         if (!presale.isExists) revert PresaleDoesNotExists();
@@ -129,7 +141,7 @@ contract IDO is IIDO, Ownable, AccessControl {
             presaleParams.startDate,
             presaleParams.endDate,
             presaleParams.token,
-            presaleParams.totalTokensForSale,
+            presaleParams.totalSupply,
             presaleParams.minAllocationAmount,
             presaleParams.maxAllocationAmount,
             presaleParams.priceInUSDT
@@ -146,20 +158,21 @@ contract IDO is IIDO, Ownable, AccessControl {
             startDate: presaleParams.startDate,
             endDate: presaleParams.endDate,
             token: presaleParams.token,
-            totalTokensForSale: presaleParams.totalTokensForSale,
+            totalSupply: presaleParams.totalSupply,
             minAllocationAmount: presaleParams.minAllocationAmount,
             maxAllocationAmount: presaleParams.maxAllocationAmount,
-            status: PresaleStatus.ACTIVE,
+            status: PresaleStatus.PENDING,
             isPublic: presaleParams.isPublic,
             claimStrategyId: presaleParams.claimStrategyId,
             priceInUSDT: presaleParams.priceInUSDT,
             claimsSchedule: claimsSchedule,
-            isExists: true
+            isExists: true,
+            isDeposited: false
         });
 
         presales[presaleId] = presale;
 
-        emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalTokensForSale, presaleParams.isPublic);
+        emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalSupply, presaleParams.isPublic);
     }
 
     function _getRandomNumber(uint256 max) private view returns (uint256) {
@@ -239,8 +252,6 @@ contract IDO is IIDO, Ownable, AccessControl {
         if (token != address(0) && token != address(USDT_CONTRACT_ADDRESS)) revert NonAvailablePresaleToken();
     }
  
-
-
     function isContract(address _addr) private view returns (bool){
         uint32 size;
         assembly {
