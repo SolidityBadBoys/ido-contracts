@@ -16,26 +16,25 @@ contract IdoDeployContract is IdoTest {
         vm.prank(deployer);
 
         Token usdtToken = new Token();
-        new IDO(address(usdtToken));      
+        new IDO(address(usdtToken));
 
         vm.stopPrank();
     }
 
-        function test_WhenIdoInitialAddressIsNotContract() external {    
+    function test_WhenIdoInitialAddressIsNotContract() external {
         vm.expectRevert(abi.encodeWithSelector(AddressIsNotContract.selector));
-        
+
         vm.prank(deployer);
         new IDO(address(0));
 
         vm.stopPrank();
     }
 
-    function test_WhenIdoInitialAddressIsNonErc20() external {    
+    function test_WhenIdoInitialAddressIsNonErc20() external {
         vm.startPrank(deployer);
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();
-                vm.expectRevert(abi.encodeWithSelector(AddressIsNonErc20.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressIsNonErc20.selector));
         new IDO(address(nonErc20Token));
         vm.stopPrank();
     }
-
 }
