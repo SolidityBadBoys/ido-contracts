@@ -11,7 +11,6 @@ import '../../src/errors/errors.sol';
 import { IIDO } from '../../src/interfaces/IDO.interface.sol';
 import { MockNonErc20Token } from '../../src/MockNonErc20Token.sol';
 
-
 /**
  * @title IdoCreatePresale
  * @dev Тестирование ошибок в функции createPresale
@@ -21,7 +20,7 @@ contract IdoCreatePresale is IdoTest {
         fixture();
     }
 
-    function test_WhenAdminCreatePublicPresale()  external {
+    function test_WhenAdminCreatePublicPresale() external {
         vm.prank(admin);
 
         vm.expectEmit(false, false, false, true);
@@ -33,7 +32,7 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-    function test_WhenAdminCreateNonPublicPresale()  external {
+    function test_WhenAdminCreateNonPublicPresale() external {
         vm.prank(admin);
 
         defaultParams.presaleParams.isPublic = false;
@@ -47,7 +46,7 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-    function test_WhenAdminCreateNonPublicPresaleWithInitialWallets()  external {
+    function test_WhenAdminCreateNonPublicPresaleWithInitialWallets() external {
         vm.prank(admin);
 
         address[] memory initialWhitelistedWallets = new address[](2);
@@ -56,7 +55,7 @@ contract IdoCreatePresale is IdoTest {
 
         defaultParams.presaleParams.isPublic = false;
         defaultParams.initialWhitelistedWallets = initialWhitelistedWallets;
-    
+
         vm.expectEmit(false, false, false, true);
         
         emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
@@ -76,7 +75,6 @@ contract IdoCreatePresale is IdoTest {
 
         vm.stopPrank();
     }
-
 
     function test_WhenCallerIsNotAdmin() external {
         vm.expectRevert(
@@ -128,13 +126,13 @@ contract IdoCreatePresale is IdoTest {
     }
 
     function test_WhenMaxAllocationIsZero() external {
-        defaultParams.presaleParams.maxAllocationAmount = 0; 
+        defaultParams.presaleParams.maxAllocationAmount = 0;
         vm.expectRevert(abi.encodeWithSelector(MaxAllocationIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);
         vm.stopPrank();
     }
-    
+
     function test_WhenPriceInUsdtIsZero() external {
         defaultParams.presaleParams.priceInUSDT = 0;
         vm.expectRevert(abi.encodeWithSelector(PriceInUsdtIsZero.selector));
@@ -142,7 +140,6 @@ contract IdoCreatePresale is IdoTest {
         createPresale(defaultParams);
         vm.stopPrank();
     }
-
 
     function test_WhenClaimScheduleIsEmpty() external {
         defaultParams.claimsSchedule = new IIDO.ClaimSchedule[](0);
@@ -152,24 +149,21 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-    
     function test_WhenClaimStartDateIsInPast() external {
-        defaultParams.claimsSchedule[0].availableFromDate = block.timestamp - 1; 
+        defaultParams.claimsSchedule[0].availableFromDate = block.timestamp - 1;
         vm.expectRevert(abi.encodeWithSelector(IncorrectClaimStartDate.selector));
         vm.prank(admin);
         createPresale(defaultParams);
         vm.stopPrank();
     }
 
-    
     function test_WhenClaimPercentageSumIsNot100() external {
-        defaultParams.claimsSchedule[0].percentage = 50; 
+        defaultParams.claimsSchedule[0].percentage = 50;
         vm.expectRevert(abi.encodeWithSelector(IncorrectClaimPercentageSum.selector));
         vm.prank(admin);
         createPresale(defaultParams);
         vm.stopPrank();
     }
-
 
     function test_WhenIsNotUsdtOrEth() external {
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();

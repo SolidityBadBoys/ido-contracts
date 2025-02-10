@@ -29,9 +29,7 @@ contract IdoBurnTokens is IdoTest {
 
         vm.startPrank(chuck);
         uint256 tokenBalance = presaleToken.balanceOf(address(ido));
-        vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, chuck)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, chuck));
         ido.burnTokens(address(presaleToken), tokenBalance);
         vm.stopPrank();
     }

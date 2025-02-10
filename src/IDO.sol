@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
- import { ERC20Burnable } from '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
+import { ERC20Burnable } from '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -35,13 +35,13 @@ contract IDO is IIDO, Ownable, AccessControl {
 
     constructor(address usdtContractAddress) Ownable(_msgSender()) {
         if (!isContract(usdtContractAddress)) revert AddressIsNotContract();
-        
+
         try IERC20(usdtContractAddress).totalSupply() returns (uint256 totalSupply) {
             totalSupply;
         } catch {
             revert AddressIsNonErc20();
         }
-        
+
         USDT_CONTRACT_ADDRESS = IERC20(usdtContractAddress);
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
@@ -148,9 +148,9 @@ contract IDO is IIDO, Ownable, AccessControl {
         );
         _validateSchedule(claimsSchedule);
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
-        
+
         if (presaleParams.isPublic == false) {
-            _addWhitelistedWallets(presaleId, initialWhitelistedWallets);   
+            _addWhitelistedWallets(presaleId, initialWhitelistedWallets);
         }
 
         PresaleInfo memory presale = PresaleInfo({
@@ -248,11 +248,11 @@ contract IDO is IIDO, Ownable, AccessControl {
         ERC20Burnable(token).burn(amount);
     }
 
-    function _validateToken(address token)  private view {
+    function _validateToken(address token) private view {
         if (token != address(0) && token != address(USDT_CONTRACT_ADDRESS)) revert NonAvailablePresaleToken();
     }
- 
-    function isContract(address _addr) private view returns (bool){
+
+    function isContract(address _addr) private view returns (bool) {
         uint32 size;
         assembly {
             size := extcodesize(_addr)
