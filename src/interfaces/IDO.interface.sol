@@ -64,6 +64,7 @@ interface IIDO {
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets
     ) external;
+    
 
     // function getPresaleInfo(uint256 presaleId) external view returns (PresaleInfo memory);
     // function getBalance(address participant, uint256 presaleId) external view returns (Balance memory);

@@ -62,11 +62,15 @@ contract IDO is IIDO, Ownable, AccessControl {
         PresaleInfo storage presale = presales[presaleId];
         if (!presale.isExists) revert PresaleDoesNotExists();
 
+        IERC20(presale.token).safeTransferFrom(msg.sender, address(this), amount);
+
         presale.status = PresaleStatus.ACTIVE;
         presale.isDeposited = true;
 
         emit TokensDeposited(presaleId, presale.token, amount);
     }
+
+
 
     function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyRole(ADMIN_ROLE) {
         PresaleInfo storage presale = presales[presaleId];
@@ -258,5 +262,9 @@ contract IDO is IIDO, Ownable, AccessControl {
             size := extcodesize(_addr)
         }
         return (size > 0);
+    }
+
+    function _buy(uint256 presaleId, uint256 amount, address buyer) private {
+        
     }
 }

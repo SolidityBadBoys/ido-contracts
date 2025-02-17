@@ -57,7 +57,7 @@ contract IdoTest is Test {
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
-        presaleToken.transfer(bob, 1_000_000 * 1e18);
+        presaleToken.transfer(deployer, 1_000_000 * 1e18);
 
         ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();
