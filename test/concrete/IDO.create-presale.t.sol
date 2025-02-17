@@ -24,8 +24,13 @@ contract IdoCreatePresale is IdoTest {
         vm.prank(admin);
 
         vm.expectEmit(false, false, false, true);
-        
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
+
+        emit IIDO.PresaleCreated(
+            1,
+            defaultParams.presaleParams.token,
+            defaultParams.presaleParams.totalSupply,
+            defaultParams.presaleParams.isPublic
+        );
 
         createPresale(defaultParams);
 
@@ -38,8 +43,13 @@ contract IdoCreatePresale is IdoTest {
         defaultParams.presaleParams.isPublic = false;
 
         vm.expectEmit(false, false, false, true);
-        
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
+
+        emit IIDO.PresaleCreated(
+            1,
+            defaultParams.presaleParams.token,
+            defaultParams.presaleParams.totalSupply,
+            defaultParams.presaleParams.isPublic
+        );
 
         createPresale(defaultParams);
 
@@ -57,8 +67,13 @@ contract IdoCreatePresale is IdoTest {
         defaultParams.initialWhitelistedWallets = initialWhitelistedWallets;
 
         vm.expectEmit(false, false, false, true);
-        
-        emit IIDO.PresaleCreated(1, defaultParams.presaleParams.token, defaultParams.presaleParams.totalSupply, defaultParams.presaleParams.isPublic);
+
+        emit IIDO.PresaleCreated(
+            1,
+            defaultParams.presaleParams.token,
+            defaultParams.presaleParams.totalSupply,
+            defaultParams.presaleParams.isPublic
+        );
 
         vm.recordLogs();
         createPresale(defaultParams);
@@ -110,7 +125,7 @@ contract IdoCreatePresale is IdoTest {
     }
 
     function test_WhenTotalSupplyIsZero() external {
-        defaultParams.presaleParams.totalSupply = 0; 
+        defaultParams.presaleParams.totalSupply = 0;
         vm.expectRevert(abi.encodeWithSelector(TokensForSaleAmountIsZero.selector));
         vm.prank(admin);
         createPresale(defaultParams);

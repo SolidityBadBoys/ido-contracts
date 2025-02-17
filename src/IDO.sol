@@ -64,7 +64,7 @@ contract IDO is IIDO, Ownable, AccessControl {
 
         presale.status = PresaleStatus.ACTIVE;
         presale.isDeposited = true;
-        
+
         emit TokensDeposited(presaleId, presale.token, amount);
     }
 
