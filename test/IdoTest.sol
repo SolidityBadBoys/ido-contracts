@@ -10,7 +10,6 @@ import { PresaleStatus } from '../src/enums/presale-status.enum.sol';
 contract IdoTest is Test {
     IDO internal ido;
     Token internal presaleToken;
-
     struct DefaultParams {
         IIDO.CreatePresaleParams presaleParams;
         IIDO.ClaimSchedule[] claimsSchedule;
@@ -46,10 +45,11 @@ contract IdoTest is Test {
                 endDate: block.timestamp + 1 days,
                 token: address(presaleToken),
                 totalSupply: 1_000_000 * (10 ** 18),
-                minAllocationAmount: 10,
-                maxAllocationAmount: 1000,
+                minAllocationAmount: 10 * (10 ** 18),
+                maxAllocationAmount: 1000 * (10 ** 18),
                 claimStrategyId: 1,
-                priceInUSDT: 1,
+                priceInUSDT: 1 * (10 ** 6),
+                priceInETH: 0.1 * (10 ** 18),
                 isPublic: true
             }),
             claimsSchedule: claimsSchedule,
@@ -57,7 +57,7 @@ contract IdoTest is Test {
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
-        presaleToken.transfer(deployer, 1_000_000 * 1e18);
+        presaleToken.transfer(deployer, 1_000_000 * (10 ** 18));
 
         ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();

@@ -31,6 +31,9 @@ error MaxAllocationIsZero();
 /// @dev Error when the price in USDT is zero.
 error PriceInUsdtIsZero();
 
+/// @dev Error when the price in USDT is zero.
+error PriceInEthIsZero();
+
 /// @dev Error when the claim schedule array is empty.
 error EmptyClaimSchedule();
 
@@ -69,3 +72,12 @@ error AddressIsNonErc20();
 
 /// @dev Error when try to add not eth or usdt address.
 error NonAvailablePresaleToken();
+
+/// @dev Error when presale for buy token amount is less than min allocation
+error AmountIsLessThanMinAllocation();
+
+/// @dev Error when presale for buy token amount is grater than min allocation
+error AmountIsMoreThanMaxAllocation();
+
+/// @dev Error when presale for buy token amount is grater than remained supply
+error AmountIsMoreThanMaxRemainedSupply();

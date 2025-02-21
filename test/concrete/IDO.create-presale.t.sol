@@ -156,6 +156,15 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
+        function test_WhenPriceInEthIsZero() external {
+        defaultParams.presaleParams.priceInETH = 0;
+        vm.expectRevert(abi.encodeWithSelector(PriceInEthIsZero.selector));
+        vm.prank(admin);
+        createPresale(defaultParams);
+        vm.stopPrank();
+    }
+
+
     function test_WhenClaimScheduleIsEmpty() external {
         defaultParams.claimsSchedule = new IIDO.ClaimSchedule[](0);
         vm.expectRevert(abi.encodeWithSelector(EmptyClaimSchedule.selector));

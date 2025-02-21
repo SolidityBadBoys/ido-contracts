@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 import { ERC20Burnable } from '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
+import { ReentrancyGuard } from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -11,7 +12,7 @@ import { PresaleStatus } from './enums/presale-status.enum.sol';
 import './errors/errors.sol';
 import './interfaces/IDO.interface.sol';
 
-contract IDO is IIDO, Ownable, AccessControl {
+contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
     /// @dev SafeERC20 is a wrapper around IERC20 that reverts if the transfer fails
     using SafeERC20 for IERC20;
 
@@ -70,8 +71,6 @@ contract IDO is IIDO, Ownable, AccessControl {
         emit TokensDeposited(presaleId, presale.token, amount);
     }
 
-
-
     function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external onlyRole(ADMIN_ROLE) {
         PresaleInfo storage presale = presales[presaleId];
         if (!presale.isExists) revert PresaleDoesNotExists();
@@ -87,7 +86,8 @@ contract IDO is IIDO, Ownable, AccessControl {
 
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
 
-        for (uint256 i = 0; i < participants.length; i++) {
+        uint256 length = participants.length;
+        for (uint256 i = 0; i < length; i++) {
             address participant = participants[i];
             whitelistedWallets[presaleId][participant] = true;
         }
@@ -100,8 +100,9 @@ contract IDO is IIDO, Ownable, AccessControl {
         _validateAddressesArray(participants);
 
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
-
-        for (uint256 i = 0; i < participants.length; i++) {
+        
+        uint256 length = participants.length;
+        for (uint256 i = 0; i < length; i++) {
             if (!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
             whitelistedWallets[presaleId][participants[i]] = false;
         }
@@ -112,8 +113,9 @@ contract IDO is IIDO, Ownable, AccessControl {
         address[] calldata tokens
     ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
         _validateAddressesArray(tokens);
-
-        for (uint256 i = 0; i < tokens.length; i++) {
+        
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; i++) {
             address token = tokens[i];
             _validateToken(token);
             whitelistedTokens[presaleId][token] = true;
@@ -125,8 +127,9 @@ contract IDO is IIDO, Ownable, AccessControl {
         address[] calldata tokens
     ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
         _validateAddressesArray(tokens);
-
-        for (uint256 i = 0; i < tokens.length; i++) {
+        
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; i++) {
             if (!whitelistedTokens[presaleId][tokens[i]]) revert TokenIsNotWhitelisted();
 
             whitelistedTokens[presaleId][tokens[i]] = false;
@@ -148,7 +151,8 @@ contract IDO is IIDO, Ownable, AccessControl {
             presaleParams.totalSupply,
             presaleParams.minAllocationAmount,
             presaleParams.maxAllocationAmount,
-            presaleParams.priceInUSDT
+            presaleParams.priceInUSDT,
+            presaleParams.priceInETH
         );
         _validateSchedule(claimsSchedule);
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
@@ -163,12 +167,14 @@ contract IDO is IIDO, Ownable, AccessControl {
             endDate: presaleParams.endDate,
             token: presaleParams.token,
             totalSupply: presaleParams.totalSupply,
+            remainedSupply: presaleParams.totalSupply,
             minAllocationAmount: presaleParams.minAllocationAmount,
             maxAllocationAmount: presaleParams.maxAllocationAmount,
             status: PresaleStatus.PENDING,
             isPublic: presaleParams.isPublic,
             claimStrategyId: presaleParams.claimStrategyId,
             priceInUSDT: presaleParams.priceInUSDT,
+            priceInETH: presaleParams.priceInETH,
             claimsSchedule: claimsSchedule,
             isExists: true,
             isDeposited: false
@@ -177,6 +183,96 @@ contract IDO is IIDO, Ownable, AccessControl {
         presales[presaleId] = presale;
 
         emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalSupply, presaleParams.isPublic);
+    }
+
+
+    function buy(uint256 presaleId) external payable onlyActivePresale(presaleId) nonReentrant {
+        if (msg.value == 0) revert CannotBeZero();
+        if (whitelistedWallets[presaleId][msg.sender] != true) revert WalletIsNotWhitelisted();
+        
+        PresaleInfo storage presale = presales[presaleId];
+        uint256 estimatedTokensAmount = msg.value / presale.priceInETH;
+
+
+        Balance[] storage userBalances = contributions[msg.sender];
+        uint256 length = userBalances.length;
+        bool found = false;
+        uint256 allocatedAmount = 0;
+
+        for (uint256 i = 0; i < length; i++) {
+            Balance storage userBalance = userBalances[i];
+            if (userBalance.presaleId == presaleId) {
+                allocatedAmount += userBalance.allocatedAmount;
+                userBalance.allocatedAmount += estimatedTokensAmount;
+                found = true;
+                break;
+            }
+        }
+        _validatePresaleTokenBuyAmount(estimatedTokensAmount, presale, allocatedAmount);
+
+        if (!found) {
+            userBalances.push(Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 }));
+        }
+
+        presale.remainedSupply -= estimatedTokensAmount;
+        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
+    }
+
+    function buy(uint256 presaleId, address token, uint256 amount) external onlyActivePresale(presaleId) nonReentrant {
+        if (amount == 0) revert CannotBeZero();
+        if (whitelistedWallets[presaleId][msg.sender] != true) revert WalletIsNotWhitelisted();
+
+        _validateToken(token);
+        
+        PresaleInfo storage presale = presales[presaleId];
+        uint256 estimatedTokensAmount = amount / presale.priceInUSDT;
+
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        
+        //TODO: refactor duplicating, use method update balance
+        Balance[] storage userBalances = contributions[msg.sender];
+        uint256 length = userBalances.length;
+        bool found = false;
+        uint256 allocatedAmount = 0;
+
+        for (uint256 i = 0; i < length; i++) {
+            Balance storage userBalance = userBalances[i];
+            if (userBalance.presaleId == presaleId) {
+                allocatedAmount += userBalance.allocatedAmount;
+                userBalance.allocatedAmount += estimatedTokensAmount;
+                found = true;
+                break;
+            }
+        }
+        
+        _validatePresaleTokenBuyAmount(estimatedTokensAmount, presale, allocatedAmount);
+
+        if (!found) {
+            userBalances.push(Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 }));
+        }
+
+        presale.remainedSupply -= estimatedTokensAmount;
+        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
+    }
+
+    function burnTokens(address token, uint256 amount) external onlyOwner {
+        if (amount == 0) revert CannotBeZero();
+        if (IERC20(token).balanceOf(address(this)) < amount) revert InsufficientBalance();
+
+        ERC20Burnable(token).burn(amount);
+    }
+
+    function _updateBuyerBalance(address buyer) private {}
+
+    function _validatePresaleTokenBuyAmount(uint256 estimatedTokensAmount, PresaleInfo storage presale, uint256 allocatedAmount )  private view {
+        if (estimatedTokensAmount < presale.minAllocationAmount) revert AmountIsLessThanMinAllocation();
+        if (estimatedTokensAmount + allocatedAmount > presale.maxAllocationAmount) revert AmountIsMoreThanMaxAllocation();
+        if (estimatedTokensAmount > presale.remainedSupply) revert AmountIsMoreThanMaxRemainedSupply();
+    }
+
+    function _validateAddressesArray(address[] calldata array) private pure {
+        if (array.length <= 0) revert ArrayIsEmpty();
     }
 
     function _getRandomNumber(uint256 max) private view returns (uint256) {
@@ -214,7 +310,8 @@ contract IDO is IIDO, Ownable, AccessControl {
         uint256 totalTokensForSale,
         uint256 minAllocationAmount,
         uint256 maxAllocationAmount,
-        uint256 priceInUSDT
+        uint256 priceInUSDT,
+        uint256 priceInETH
     ) private view {
         if (token == address(0)) revert CannotBeZero();
         if (startDate < block.timestamp) revert IncorrectStartDate();
@@ -223,10 +320,12 @@ contract IDO is IIDO, Ownable, AccessControl {
         if (minAllocationAmount == 0) revert MinAllocationIsZero();
         if (maxAllocationAmount == 0) revert MaxAllocationIsZero();
         if (priceInUSDT == 0) revert PriceInUsdtIsZero();
+        if (priceInETH == 0) revert PriceInEthIsZero();
     }
 
     function _addWhitelistedTokens(uint256 presaleId, address[] calldata tokens) private {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; i++) {
             address token = tokens[i];
             _validateToken(token);
             whitelistedTokens[presaleId][token] = true;
@@ -234,23 +333,15 @@ contract IDO is IIDO, Ownable, AccessControl {
     }
 
     function _addWhitelistedWallets(uint256 presaleId, address[] calldata wallets) private {
-        for (uint256 i = 0; i < wallets.length; i++) {
+        uint256 length = wallets.length;
+        for (uint256 i = 0; i < length; i++) {
             address wallet = wallets[i];
             if (wallet == address(0)) revert CannotBeZero();
             whitelistedWallets[presaleId][wallet] = true;
         }
     }
 
-    function _validateAddressesArray(address[] calldata array) private pure {
-        if (array.length <= 0) revert ArrayIsEmpty();
-    }
 
-    function burnTokens(address token, uint256 amount) external onlyOwner {
-        if (amount == 0) revert CannotBeZero();
-        if (IERC20(token).balanceOf(address(this)) < amount) revert InsufficientBalance();
-
-        ERC20Burnable(token).burn(amount);
-    }
 
     function _validateToken(address token) private view {
         if (token != address(0) && token != address(USDT_CONTRACT_ADDRESS)) revert NonAvailablePresaleToken();
@@ -262,9 +353,5 @@ contract IDO is IIDO, Ownable, AccessControl {
             size := extcodesize(_addr)
         }
         return (size > 0);
-    }
-
-    function _buy(uint256 presaleId, uint256 amount, address buyer) private {
-        
     }
 }

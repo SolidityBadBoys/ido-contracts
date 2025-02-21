@@ -98,12 +98,14 @@ contract IdoDepositPresaleToken is IdoTest {
         uint256 endDate,
         address token,
         uint256 totalSupply,
+        uint256 remainedSupply,
         uint256 minAllocationAmount,
         uint256 maxAllocationAmount,
         PresaleStatus status,
         bool isPublic,
         uint256 claimStrategyId,
         uint256 priceInUSDT,
+        uint256 priceInETH,
         bool isExists,
         bool isDeposited
         ) = ido.presales(presaleId); 

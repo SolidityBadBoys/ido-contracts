@@ -15,6 +15,7 @@ interface IIDO {
         uint256 maxAllocationAmount;
         uint256 claimStrategyId;
         uint256 priceInUSDT;
+        uint256 priceInETH;
         bool isPublic;
     }
     struct PresaleInfo {
@@ -23,12 +24,14 @@ interface IIDO {
         uint256 endDate;
         address token;
         uint256 totalSupply;
+        uint256 remainedSupply;
         uint256 minAllocationAmount;
         uint256 maxAllocationAmount;
         PresaleStatus status;
         bool isPublic;
         uint256 claimStrategyId;
         uint256 priceInUSDT;
+        uint256 priceInETH;
         ClaimSchedule[] claimsSchedule;
         bool isExists;
         bool isDeposited;
@@ -51,7 +54,10 @@ interface IIDO {
 
     event PresaleCreated(uint256 indexed presaleId, address token, uint256 totalSupply, bool isPublic);
     event TokensDeposited(uint256 indexed presaleId, address indexed token, uint256 amount);
+    event AllocationBought(uint256 indexed presaleId, address indexed buyer, uint256 amount);
 
+    function buy(uint256 presaleId) external payable;
+    function buy(uint256 presaleId, address token, uint256 amount) external;
     function withdraw(address token, uint256 amount, address recipient) external;
     function toggleWhitelistedMode(uint256 presaleId, bool isPublic) external;
     function addParticipantsToWhitelist(uint256 presaleId, address[] calldata participants) external;
