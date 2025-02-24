@@ -23,16 +23,8 @@ contract IdoDepositPresaleToken is IdoTest {
     }
 
     function test_WhenCallerIsNotOwner() external {
-        vm.startPrank(admin);
-
-        vm.recordLogs();
-        createPresale(defaultParams);
-
-        vm.stopPrank();
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        
-        uint256 presaleId = uint256(logs[0].topics[1]);
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, carol));
         
@@ -41,16 +33,8 @@ contract IdoDepositPresaleToken is IdoTest {
     }
 
     function test_WhenAmountIsZero() external {
-        vm.startPrank(admin);
-
-        vm.recordLogs();
-        createPresale(defaultParams);
-
-        vm.stopPrank();
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        
-        uint256 presaleId = uint256(logs[0].topics[1]);
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.expectRevert(abi.encodeWithSelector(CannotBeZero.selector));
         
@@ -68,16 +52,10 @@ contract IdoDepositPresaleToken is IdoTest {
 
     function test_WhenDepositPresaleToken() external {
         vm.prank(admin);
-
-        vm.recordLogs();
-
-        createPresale(defaultParams);
+        uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.startPrank(deployer);
 
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        uint256 presaleId = uint256(logs[0].topics[1]);
         uint256 amount = defaultParams.presaleParams.totalSupply;
 
         presaleToken.approve(address(ido), amount);

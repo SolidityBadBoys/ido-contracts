@@ -185,21 +185,43 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalSupply, presaleParams.isPublic);
     }
 
-
     function buy(uint256 presaleId) external payable onlyActivePresale(presaleId) nonReentrant {
         if (msg.value == 0) revert CannotBeZero();
-        if (whitelistedWallets[presaleId][msg.sender] != true) revert WalletIsNotWhitelisted();
-        
+
         PresaleInfo storage presale = presales[presaleId];
         uint256 estimatedTokensAmount = msg.value / presale.priceInETH;
 
+        _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
+        presale.remainedSupply -= estimatedTokensAmount;
+        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
+    }
 
+    function buy(uint256 presaleId, address token, uint256 amount) external onlyActivePresale(presaleId) nonReentrant {
+        if (amount == 0) revert CannotBeZero();
+
+        _validateToken(token);
+        
+        PresaleInfo storage presale = presales[presaleId];
+        uint256 estimatedTokensAmount = amount / presale.priceInUSDT;
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
+        presale.remainedSupply -= estimatedTokensAmount;
+        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
+    }
+
+    function _validateAndUpdateBalance(uint256 presaleId, uint256 estimatedTokensAmount, PresaleInfo storage presale) internal {
+        if (!presale.isPublic && whitelistedWallets[presaleId][msg.sender] != true) {
+            revert WalletIsNotWhitelisted();
+        }
+        
         Balance[] storage userBalances = contributions[msg.sender];
-        uint256 length = userBalances.length;
+        uint256 balancesLength = userBalances.length;
+
         bool found = false;
         uint256 allocatedAmount = 0;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < balancesLength; i++) {
             Balance storage userBalance = userBalances[i];
             if (userBalance.presaleId == presaleId) {
                 allocatedAmount += userBalance.allocatedAmount;
@@ -208,6 +230,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
                 break;
             }
         }
+        
         _validatePresaleTokenBuyAmount(estimatedTokensAmount, presale, allocatedAmount);
 
         if (!found) {
@@ -218,42 +241,20 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
-    function buy(uint256 presaleId, address token, uint256 amount) external onlyActivePresale(presaleId) nonReentrant {
-        if (amount == 0) revert CannotBeZero();
-        if (whitelistedWallets[presaleId][msg.sender] != true) revert WalletIsNotWhitelisted();
+    function getMyBalance(uint256 presaleId) external view returns (uint256) {
+        if (!presales[presaleId].isExists) revert PresaleDoesNotExists();
 
-        _validateToken(token);
-        
-        PresaleInfo storage presale = presales[presaleId];
-        uint256 estimatedTokensAmount = amount / presale.priceInUSDT;
-
-
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        
-        //TODO: refactor duplicating, use method update balance
         Balance[] storage userBalances = contributions[msg.sender];
-        uint256 length = userBalances.length;
-        bool found = false;
-        uint256 allocatedAmount = 0;
+        uint256 balancesLength = userBalances.length;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint i = 0; i < balancesLength; i++) {
             Balance storage userBalance = userBalances[i];
             if (userBalance.presaleId == presaleId) {
-                allocatedAmount += userBalance.allocatedAmount;
-                userBalance.allocatedAmount += estimatedTokensAmount;
-                found = true;
-                break;
+                return userBalance.allocatedAmount;
             }
         }
-        
-        _validatePresaleTokenBuyAmount(estimatedTokensAmount, presale, allocatedAmount);
 
-        if (!found) {
-            userBalances.push(Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 }));
-        }
-
-        presale.remainedSupply -= estimatedTokensAmount;
-        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
+        return 0;
     }
 
     function burnTokens(address token, uint256 amount) external onlyOwner {

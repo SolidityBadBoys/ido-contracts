@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { Vm } from 'forge-std/Test.sol';
+import {console} from "forge-std/console.sol";
+
 import { Test } from './Test.sol';
 import { IIDO } from '../src/interfaces/IDO.interface.sol';
 import { IDO } from '../src/IDO.sol';
@@ -44,12 +47,12 @@ contract IdoTest is Test {
                 startDate: block.timestamp,
                 endDate: block.timestamp + 1 days,
                 token: address(presaleToken),
-                totalSupply: 1_000_000 * (10 ** 18),
-                minAllocationAmount: 10 * (10 ** 18),
-                maxAllocationAmount: 1000 * (10 ** 18),
+                totalSupply: 1_000_000,
+                minAllocationAmount: 10,
+                maxAllocationAmount: 1000,
                 claimStrategyId: 1,
                 priceInUSDT: 1 * (10 ** 6),
-                priceInETH: 0.1 * (10 ** 18),
+                priceInETH: 0.1 ether,
                 isPublic: true
             }),
             claimsSchedule: claimsSchedule,
@@ -57,7 +60,7 @@ contract IdoTest is Test {
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
-        presaleToken.transfer(deployer, 1_000_000 * (10 ** 18));
+        presaleToken.transfer(deployer, 1_000_000);
 
         ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();
@@ -70,5 +73,23 @@ contract IdoTest is Test {
             params.initialWhitelistedTokens,
             params.initialWhitelistedWallets
         );
+    }
+
+    function createPresaleWithId(DefaultParams storage params) internal returns(uint256){
+        vm.recordLogs();
+
+        try ido.createPresale(
+            params.presaleParams,
+            params.claimsSchedule,
+            params.initialWhitelistedTokens,
+            params.initialWhitelistedWallets
+        ) {
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            require(logs.length > 0, 'No logs found after presale creation');
+            uint256 presaleId = uint256(logs[0].topics[1]);
+            return presaleId;
+        } catch {
+            revert('Create presale failed: Vadim transaction was reverted');
+        }
     }
 }

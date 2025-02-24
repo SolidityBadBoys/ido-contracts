@@ -75,12 +75,7 @@ contract IdoCreatePresale is IdoTest {
             defaultParams.presaleParams.isPublic
         );
 
-        vm.recordLogs();
-        createPresale(defaultParams);
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        uint256 presaleId = uint256(logs[0].topics[1]);
+        uint256 presaleId = createPresaleWithId(defaultParams);
 
         bool isAlinaParticipant = ido.whitelistedWallets(presaleId, alina);
         bool isBobParticipant = ido.whitelistedWallets(presaleId, bob);
@@ -97,7 +92,6 @@ contract IdoCreatePresale is IdoTest {
         );
         vm.prank(alina);
         createPresale(defaultParams);
-        vm.stopPrank();
     }
 
     function test_WhenStartDateIsInPast() external {
