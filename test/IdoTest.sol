@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { Vm } from 'forge-std/Test.sol';
-import {console} from "forge-std/console.sol";
+import { console } from 'forge-std/console.sol';
 
 import { Test } from './Test.sol';
 import { IIDO } from '../src/interfaces/IDO.interface.sol';
@@ -47,9 +47,9 @@ contract IdoTest is Test {
                 startDate: block.timestamp,
                 endDate: block.timestamp + 1 days,
                 token: address(presaleToken),
-                totalSupply: 1_000_000,
-                minAllocationAmount: 10,
-                maxAllocationAmount: 1000,
+                totalSupply: 1_000_000 * (10 ** presaleToken.decimals()),
+                minAllocationAmount: 10 * (10 ** presaleToken.decimals()),
+                maxAllocationAmount: 1000 * (10 ** presaleToken.decimals()),
                 claimStrategyId: 1,
                 priceInUSDT: 1 * (10 ** 6),
                 priceInETH: 0.1 ether,
@@ -60,7 +60,7 @@ contract IdoTest is Test {
             initialWhitelistedWallets: initialWhitelistedWallets
         });
 
-        presaleToken.transfer(deployer, 1_000_000);
+        presaleToken.transfer(deployer, 1_000_000 * (10 ** presaleToken.decimals()));
 
         ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();

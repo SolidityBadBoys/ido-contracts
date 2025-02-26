@@ -51,16 +51,16 @@ contract IdoBuyTokens is IdoTest {
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.startPrank(deployer);
-        presaleToken.approve(address(ido), 100);
-        ido.deposit(presaleId, 100);
+        presaleToken.approve(address(ido), 100 * (10 **  presaleToken.decimals()));
+        ido.deposit(presaleId, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
 
         vm.startPrank(chuck);
-        uint256 amount = defaultParams.presaleParams.priceInETH * 100;
+        uint256 amount = defaultParams.presaleParams.priceInETH * 10;
         ido.buy{ value: amount }(presaleId);
 
         uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
-        assertEq(newPresaleTokenBalance, 100);
+        assertEq(newPresaleTokenBalance, 10 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
     }
 
@@ -85,7 +85,7 @@ contract IdoBuyTokens is IdoTest {
         ido.buy{ value: amount }(presaleId);
 
         uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
-        assertEq(newPresaleTokenBalance, 100);
+        assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
     }
 }

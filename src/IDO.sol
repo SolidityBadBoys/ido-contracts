@@ -189,9 +189,10 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         if (msg.value == 0) revert CannotBeZero();
 
         PresaleInfo storage presale = presales[presaleId];
-        uint256 estimatedTokensAmount = msg.value / presale.priceInETH;
-
+        uint256 estimatedTokensAmount = ((msg.value  * (10 ** 18)) / presale.priceInETH);
+        
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
+
         presale.remainedSupply -= estimatedTokensAmount;
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
