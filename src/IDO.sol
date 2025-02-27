@@ -203,7 +203,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         _validateToken(token);
 
         PresaleInfo storage presale = presales[presaleId];
-        uint256 estimatedTokensAmount = amount / presale.priceInUSDT;
+        uint256 estimatedTokensAmount = (amount * (10 ** 18)) / presale.priceInUSDT;
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
