@@ -75,15 +75,17 @@ contract IdoTest is Test {
         );
     }
 
-    function createPresaleWithId(DefaultParams storage params) internal returns(uint256){
+    function createPresaleWithId(DefaultParams storage params) internal returns (uint256) {
         vm.recordLogs();
 
-        try ido.createPresale(
-            params.presaleParams,
-            params.claimsSchedule,
-            params.initialWhitelistedTokens,
-            params.initialWhitelistedWallets
-        ) {
+        try
+            ido.createPresale(
+                params.presaleParams,
+                params.claimsSchedule,
+                params.initialWhitelistedTokens,
+                params.initialWhitelistedWallets
+            )
+        {
             Vm.Log[] memory logs = vm.getRecordedLogs();
             require(logs.length > 0, 'No logs found after presale creation');
             uint256 presaleId = uint256(logs[0].topics[1]);

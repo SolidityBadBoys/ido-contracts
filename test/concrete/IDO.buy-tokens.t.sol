@@ -51,7 +51,7 @@ contract IdoBuyTokens is IdoTest {
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.startPrank(deployer);
-        presaleToken.approve(address(ido), 100 * (10 **  presaleToken.decimals()));
+        presaleToken.approve(address(ido), 100 * (10 ** presaleToken.decimals()));
         ido.deposit(presaleId, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
 
@@ -70,7 +70,7 @@ contract IdoBuyTokens is IdoTest {
 
         defaultParams.presaleParams.isPublic = false;
         defaultParams.initialWhitelistedWallets = initialWhitelistedWallets;
-        
+
         vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
 

@@ -100,7 +100,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         _validateAddressesArray(participants);
 
         if (presales[presaleId].isPublic == true) revert PublicPresaleCantBeWhitelisted();
-        
+
         uint256 length = participants.length;
         for (uint256 i = 0; i < length; i++) {
             if (!whitelistedWallets[presaleId][participants[i]]) revert WalletIsNotWhitelisted();
@@ -113,7 +113,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         address[] calldata tokens
     ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
         _validateAddressesArray(tokens);
-        
+
         uint256 length = tokens.length;
         for (uint256 i = 0; i < length; i++) {
             address token = tokens[i];
@@ -127,7 +127,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         address[] calldata tokens
     ) external onlyRole(ADMIN_ROLE) onlyActivePresale(presaleId) {
         _validateAddressesArray(tokens);
-        
+
         uint256 length = tokens.length;
         for (uint256 i = 0; i < length; i++) {
             if (!whitelistedTokens[presaleId][tokens[i]]) revert TokenIsNotWhitelisted();
@@ -189,8 +189,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         if (msg.value == 0) revert CannotBeZero();
 
         PresaleInfo storage presale = presales[presaleId];
-        uint256 estimatedTokensAmount = ((msg.value  * (10 ** 18)) / presale.priceInETH);
-        
+        uint256 estimatedTokensAmount = ((msg.value * (10 ** 18)) / presale.priceInETH);
+
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
 
         presale.remainedSupply -= estimatedTokensAmount;
@@ -201,7 +201,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         if (amount == 0) revert CannotBeZero();
 
         _validateToken(token);
-        
+
         PresaleInfo storage presale = presales[presaleId];
         uint256 estimatedTokensAmount = amount / presale.priceInUSDT;
 
@@ -211,11 +211,15 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
-    function _validateAndUpdateBalance(uint256 presaleId, uint256 estimatedTokensAmount, PresaleInfo storage presale) internal {
+    function _validateAndUpdateBalance(
+        uint256 presaleId,
+        uint256 estimatedTokensAmount,
+        PresaleInfo storage presale
+    ) internal {
         if (!presale.isPublic && whitelistedWallets[presaleId][msg.sender] != true) {
             revert WalletIsNotWhitelisted();
         }
-        
+
         Balance[] storage userBalances = contributions[msg.sender];
         uint256 balancesLength = userBalances.length;
 
@@ -231,11 +235,13 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
                 break;
             }
         }
-        
+
         _validatePresaleTokenBuyAmount(estimatedTokensAmount, presale, allocatedAmount);
 
         if (!found) {
-            userBalances.push(Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 }));
+            userBalances.push(
+                Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 })
+            );
         }
 
         presale.remainedSupply -= estimatedTokensAmount;
@@ -267,9 +273,14 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
     function _updateBuyerBalance(address buyer) private {}
 
-    function _validatePresaleTokenBuyAmount(uint256 estimatedTokensAmount, PresaleInfo storage presale, uint256 allocatedAmount )  private view {
+    function _validatePresaleTokenBuyAmount(
+        uint256 estimatedTokensAmount,
+        PresaleInfo storage presale,
+        uint256 allocatedAmount
+    ) private view {
         if (estimatedTokensAmount < presale.minAllocationAmount) revert AmountIsLessThanMinAllocation();
-        if (estimatedTokensAmount + allocatedAmount > presale.maxAllocationAmount) revert AmountIsMoreThanMaxAllocation();
+        if (estimatedTokensAmount + allocatedAmount > presale.maxAllocationAmount)
+            revert AmountIsMoreThanMaxAllocation();
         if (estimatedTokensAmount > presale.remainedSupply) revert AmountIsMoreThanMaxRemainedSupply();
     }
 
@@ -342,8 +353,6 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             whitelistedWallets[presaleId][wallet] = true;
         }
     }
-
-
 
     function _validateToken(address token) private view {
         if (token != address(0) && token != address(USDT_CONTRACT_ADDRESS)) revert NonAvailablePresaleToken();

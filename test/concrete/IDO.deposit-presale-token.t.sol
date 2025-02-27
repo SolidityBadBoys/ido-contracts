@@ -27,7 +27,7 @@ contract IdoDepositPresaleToken is IdoTest {
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, carol));
-        
+
         vm.prank(carol);
         ido.deposit(presaleId, 100);
     }
@@ -37,18 +37,17 @@ contract IdoDepositPresaleToken is IdoTest {
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.expectRevert(abi.encodeWithSelector(CannotBeZero.selector));
-        
+
         vm.prank(deployer);
         ido.deposit(presaleId, 0);
     }
 
     function test_WhenPresaleDoesNotExist() external {
         vm.expectRevert(abi.encodeWithSelector(PresaleDoesNotExists.selector));
-        
+
         vm.prank(deployer);
         ido.deposit(353, 100);
     }
-
 
     function test_WhenDepositPresaleToken() external {
         vm.prank(admin);
@@ -62,31 +61,27 @@ contract IdoDepositPresaleToken is IdoTest {
 
         vm.expectEmit(true, true, false, true);
 
-        emit IIDO.TokensDeposited(
-            presaleId,
-            defaultParams.presaleParams.token,
-            amount
-        );
-    
+        emit IIDO.TokensDeposited(presaleId, defaultParams.presaleParams.token, amount);
+
         ido.deposit(presaleId, amount);
 
         (
-        uint256 id,
-        uint256 startDate,
-        uint256 endDate,
-        address token,
-        uint256 totalSupply,
-        uint256 remainedSupply,
-        uint256 minAllocationAmount,
-        uint256 maxAllocationAmount,
-        PresaleStatus status,
-        bool isPublic,
-        uint256 claimStrategyId,
-        uint256 priceInUSDT,
-        uint256 priceInETH,
-        bool isExists,
-        bool isDeposited
-        ) = ido.presales(presaleId); 
+            uint256 id,
+            uint256 startDate,
+            uint256 endDate,
+            address token,
+            uint256 totalSupply,
+            uint256 remainedSupply,
+            uint256 minAllocationAmount,
+            uint256 maxAllocationAmount,
+            PresaleStatus status,
+            bool isPublic,
+            uint256 claimStrategyId,
+            uint256 priceInUSDT,
+            uint256 priceInETH,
+            bool isExists,
+            bool isDeposited
+        ) = ido.presales(presaleId);
 
         assertEq(isDeposited, true, 'Presale should be deposited');
         assertTrue(status == PresaleStatus.ACTIVE, 'Presale should be active');
