@@ -15,6 +15,7 @@ contract IdoBuyTokens is IdoTest {
         fixture();
 
         deal(chuck, 500 ether);
+        deal(address(usdtToken), alina, 100 * (10 ** usdtToken.decimals()));
     }
 
     function test_WhenPresaleDoesNotExists() external {
@@ -32,19 +33,35 @@ contract IdoBuyTokens is IdoTest {
         ido.buy{ value: 0 }(presaleId);
     }
 
-    function test_WhenAmountIsZero() external {
+    function test_WhenAmountIsZeroForEth() external {
         vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.startPrank(deployer);
-        presaleToken.approve(address(ido), 100 * (10 ** 18));
-        ido.deposit(presaleId, 100 * (10 ** 18));
+        presaleToken.approve(address(ido), 100 * (10 ** presaleToken.decimals()));
+        ido.deposit(presaleId, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
 
         vm.expectRevert(abi.encodeWithSelector(CannotBeZero.selector));
         vm.prank(chuck);
         ido.buy{ value: 0 }(presaleId);
     }
+
+
+    function test_WhenAmountIsZeroForUsdt() external {
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
+
+        vm.startPrank(deployer);
+        presaleToken.approve(address(ido), 100 * (10 ** presaleToken.decimals()));
+        ido.deposit(presaleId, 100 * (10 ** presaleToken.decimals()));
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(CannotBeZero.selector));
+        vm.prank(alina);
+        ido.buy(presaleId, address(usdtToken), 0);
+    }
+
 
     function test_WhenBuyPublicPresaleTokenWithEth() external {
         vm.prank(admin);
@@ -86,6 +103,78 @@ contract IdoBuyTokens is IdoTest {
 
         uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
         assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
+        vm.stopPrank();
+    }
+
+    function test_WhenBuyPublicPresaleTokenWithUsdt() external {
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
+
+        vm.startPrank(deployer);
+        uint256 depositedAmount = defaultParams.presaleParams.totalSupply;
+        presaleToken.approve(address(ido), depositedAmount);
+        ido.deposit(presaleId, depositedAmount);
+        vm.stopPrank();
+
+        vm.startPrank(alina);
+        uint256 amount = defaultParams.presaleParams.priceInUSDT * 100;
+        usdtToken.approve(address(ido), amount);
+        ido.buy(presaleId, address(usdtToken), 100 * (10 ** usdtToken.decimals()));
+        
+        uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
+        assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
+        vm.stopPrank();
+
+    }
+
+    function test_WhenBuyNonPublicPresaleTokenWithUsdt() external {
+        address[] memory initialWhitelistedWallets = new address[](1);
+        initialWhitelistedWallets[0] = address(alina);
+
+        defaultParams.presaleParams.isPublic = false;
+        defaultParams.initialWhitelistedWallets = initialWhitelistedWallets;
+
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
+
+        vm.startPrank(deployer);
+        uint256 depositedAmount = defaultParams.presaleParams.totalSupply;
+        presaleToken.approve(address(ido), depositedAmount);
+        ido.deposit(presaleId, depositedAmount);
+        vm.stopPrank();
+
+        vm.startPrank(alina);
+        uint256 amount = defaultParams.presaleParams.priceInUSDT * 100;
+        usdtToken.approve(address(ido), amount);
+        ido.buy(presaleId, address(usdtToken), 100 * (10 ** usdtToken.decimals()));
+        
+        uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
+        assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
+        vm.stopPrank();
+    }
+
+    function test_WhenPresaleDoesNotExistsWithUsdt() external {
+        uint256 decimals = usdtToken.decimals();
+        
+        vm.expectRevert(abi.encodeWithSelector(PresaleDoesNotExists.selector));
+
+        vm.startPrank(alina);
+        uint256 amount = 100 * (10 ** decimals);
+        ido.buy(1, address(usdtToken), amount);
+        vm.stopPrank();
+    }
+
+    function test_WhenPresaleIsNotActiveWithUsdt() external {
+        vm.prank(admin);
+        uint256 presaleId = createPresaleWithId(defaultParams);
+    
+        uint256 decimals = usdtToken.decimals();
+
+        vm.expectRevert(abi.encodeWithSelector(PresaleIsNotActive.selector));
+
+        vm.startPrank(alina);
+        uint256 amount = 100 * (10 ** decimals);
+        ido.buy(presaleId, address(usdtToken), amount);
         vm.stopPrank();
     }
 }

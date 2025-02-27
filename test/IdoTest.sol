@@ -13,6 +13,8 @@ import { PresaleStatus } from '../src/enums/presale-status.enum.sol';
 contract IdoTest is Test {
     IDO internal ido;
     Token internal presaleToken;
+    Token internal usdtToken;
+
     struct DefaultParams {
         IIDO.CreatePresaleParams presaleParams;
         IIDO.ClaimSchedule[] claimsSchedule;
@@ -25,7 +27,7 @@ contract IdoTest is Test {
     function fixture() internal {
         vm.startPrank(deployer);
 
-        Token usdtToken = new Token();
+        usdtToken = new Token();
 
         ido = new IDO(address(usdtToken));
 
@@ -51,7 +53,7 @@ contract IdoTest is Test {
                 minAllocationAmount: 10 * (10 ** presaleToken.decimals()),
                 maxAllocationAmount: 1000 * (10 ** presaleToken.decimals()),
                 claimStrategyId: 1,
-                priceInUSDT: 1 * (10 ** 6),
+                priceInUSDT: 1 * (10 ** usdtToken.decimals()),
                 priceInETH: 0.1 ether,
                 isPublic: true
             }),
