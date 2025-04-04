@@ -5,6 +5,7 @@ import { ReentrancyGuard } from '@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { SafeERC20 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { AccessControl } from '@openzeppelin/contracts/access/AccessControl.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import { IERC20Metadata } from '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { Address } from '@openzeppelin/contracts/utils/Address.sol';
 
@@ -22,7 +23,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
     IERC20 public immutable USDT_CONTRACT_ADDRESS;
 
-    mapping(uint256 claimStrategyId => ClaimStrategy) public claimStrategies;
+    mapping(uint256 claimStrategyId => ClaimSchedule[] claimsSchedule) public claimStrategies;
     mapping(uint256 presaleId => PresaleInfo) public presales;
     mapping(address => Balance[]) public contributions;
     mapping(uint256 presaleId => mapping(address => bool)) public whitelistedTokens;
@@ -138,7 +139,6 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
     function createPresale(
         CreatePresaleParams calldata presaleParams,
-        ClaimSchedule[] calldata claimsSchedule,
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets
     ) external onlyRole(ADMIN_ROLE) {
@@ -154,7 +154,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             presaleParams.priceInUSDT,
             presaleParams.priceInETH
         );
-        _validateSchedule(claimsSchedule);
+
         _addWhitelistedTokens(presaleId, initialWhitelistedTokens);
 
         if (presaleParams.isPublic == false) {
@@ -175,8 +175,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             claimStrategyId: presaleParams.claimStrategyId,
             priceInUSDT: presaleParams.priceInUSDT,
             priceInETH: presaleParams.priceInETH,
-            claimsSchedule: claimsSchedule,
-            isExists: true,
+                        isExists: true,
             isDeposited: false
         });
 
@@ -185,7 +184,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit PresaleCreated(presaleId, presaleParams.token, presaleParams.totalSupply, presaleParams.isPublic);
     }
 
-    function buy(uint256 presaleId) external payable onlyActivePresale(presaleId) nonReentrant {
+    function buy(uint256 presaleId) external payable onlyActivePresale(presaleId) {
         if (msg.value == 0) revert CannotBeZero();
 
         PresaleInfo storage presale = presales[presaleId];
@@ -197,13 +196,13 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
-    function buy(uint256 presaleId, address token, uint256 amount) external onlyActivePresale(presaleId) nonReentrant {
+    function buy(uint256 presaleId, address token, uint256 amount) external onlyActivePresale(presaleId) {
         if (amount == 0) revert CannotBeZero();
 
         _validateToken(token);
 
         PresaleInfo storage presale = presales[presaleId];
-        uint256 estimatedTokensAmount = (amount * (10 ** 18)) / presale.priceInUSDT;
+        uint256 estimatedTokensAmount = (amount * (10 ** IERC20Metadata(token).decimals())) / presale.priceInUSDT;
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
@@ -211,11 +210,42 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
+    function claim(uint256 presaleId) external onlyActivePresale(presaleId) nonReentrant() {
+        PresaleInfo memory presale = presales[presaleId];
+
+        (uint256 index, bool found) = findBalanceIndex(presaleId);
+        if(!found) revert ClaimIsNotAvailable();
+
+        Balance storage presaleBalance = contributions[msg.sender][index];
+        if (presaleBalance.claimedAmount >= presaleBalance.allocatedAmount) revert AllocationAlreadyClaimed();
+
+        ClaimSchedule[] memory presaleClaimStrategies = claimStrategies[presale.claimStrategyId];
+
+        uint256 totalClaimablePercentage;
+        
+        // TODO: additional util
+        uint256 length = presaleClaimStrategies.length;
+        for (uint256 i = 0; i < length; i++) {
+            ClaimSchedule memory presaleClaimStrategy = presaleClaimStrategies[i];
+
+            if (presaleClaimStrategy.availableFromDate <= block.timestamp) {
+                totalClaimablePercentage += presaleClaimStrategy.percentage;
+            }
+        }
+
+        uint256 claimable = totalClaimablePercentage - presaleBalance.claimedAmount;
+        if (claimable == 0) revert AllocationAlreadyClaimed();
+
+
+        // TODO: witdhraw claimable amount
+        presaleBalance.claimedAmount += claimable;
+    }
+
     function _validateAndUpdateBalance(
         uint256 presaleId,
         uint256 estimatedTokensAmount,
         PresaleInfo storage presale
-    ) internal {
+    ) private {
         if (!presale.isPublic && whitelistedWallets[presaleId][msg.sender] != true) {
             revert WalletIsNotWhitelisted();
         }
@@ -254,7 +284,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         Balance[] storage userBalances = contributions[msg.sender];
         uint256 balancesLength = userBalances.length;
 
-        for (uint i = 0; i < balancesLength; i++) {
+        for (uint256 i = 0; i < balancesLength; i++) {
             Balance storage userBalance = userBalances[i];
             if (userBalance.presaleId == presaleId) {
                 return userBalance.allocatedAmount;
@@ -364,5 +394,18 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             size := extcodesize(_addr)
         }
         return (size > 0);
+    }
+
+    function findBalanceIndex( uint256 presaleId) private view returns (uint256 foundIndex, bool isFound) {
+        Balance[] storage userContributions = contributions[msg.sender];
+
+        uint256 length = userContributions.length;
+         for (uint256 i = 0; i < length; i++) {
+            if (userContributions[i].presaleId == presaleId) {
+                return (i, true);
+            }
+         }
+
+        return (0, false);
     }
 }

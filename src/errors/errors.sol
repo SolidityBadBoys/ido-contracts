@@ -81,3 +81,9 @@ error AmountIsMoreThanMaxAllocation();
 
 /// @dev Error when presale for buy token amount is grater than remained supply
 error AmountIsMoreThanMaxRemainedSupply();
+
+/// @dev Error when claim is not available
+error ClaimIsNotAvailable();
+
+/// @dev Error when user has already claimed full allocation
+error AllocationAlreadyClaimed();
