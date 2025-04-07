@@ -20,6 +20,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
     uint256 private constant MAX_VALUE_OF_ID = 99999999999999;
+    uint256 private constant MULTIPLIER_PERCENTAGE = 100;
 
     IERC20 public immutable USDT_CONTRACT_ADDRESS;
 
@@ -175,7 +176,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             claimStrategyId: presaleParams.claimStrategyId,
             priceInUSDT: presaleParams.priceInUSDT,
             priceInETH: presaleParams.priceInETH,
-                        isExists: true,
+            isExists: true,
             isDeposited: false
         });
 
@@ -190,8 +191,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         PresaleInfo storage presale = presales[presaleId];
         uint256 estimatedTokensAmount = ((msg.value * (10 ** 18)) / presale.priceInETH);
 
+        // @TODO: Вынести в util функцию
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
-
         presale.remainedSupply -= estimatedTokensAmount;
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
@@ -205,6 +206,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         uint256 estimatedTokensAmount = (amount * (10 ** IERC20Metadata(token).decimals())) / presale.priceInUSDT;
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        
+        // @TODO: Вынести в util функцию (повторяется код)
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
         presale.remainedSupply -= estimatedTokensAmount;
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
@@ -213,17 +216,39 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
     function claim(uint256 presaleId) external onlyActivePresale(presaleId) nonReentrant() {
         PresaleInfo memory presale = presales[presaleId];
 
-        (uint256 index, bool found) = findBalanceIndex(presaleId);
+        (uint256 index, bool found) = _findBalanceIndex(msg.sender, presaleId);
+        if(!found) revert ClaimIsNotAvailable();
+
+        uint256 claimable = _calculateClaimableAmount(presale, index);
+
+        IERC20(presale.token).safeTransferFrom(address(this), msg.sender, claimable);
+    }
+
+    function createClaimStrategy(
+        ClaimSchedule[] calldata claimsSchedule
+    ) external onlyRole(ADMIN_ROLE) returns (uint256) {
+        _validateSchedule(claimsSchedule);
+        
+        uint256 claimStrategyId = _getRandomNumber(MAX_VALUE_OF_ID);
+
+       claimStrategies[claimStrategyId] = claimsSchedule;
+
+        return claimStrategyId;
+    }
+
+    function getAvailableClaimAmount(uint256 presaleId) external view returns (uint256) {
+        PresaleInfo memory presale = presales[presaleId];
+
+        (uint256 index, bool found) = _findBalanceIndex(msg.sender, presaleId);
         if(!found) revert ClaimIsNotAvailable();
 
         Balance storage presaleBalance = contributions[msg.sender][index];
-        if (presaleBalance.claimedAmount >= presaleBalance.allocatedAmount) revert AllocationAlreadyClaimed();
+        if (presaleBalance.claimedAmount >= presaleBalance.allocatedAmount) return 0;
+
+        uint256 totalClaimablePercentage;
 
         ClaimSchedule[] memory presaleClaimStrategies = claimStrategies[presale.claimStrategyId];
 
-        uint256 totalClaimablePercentage;
-        
-        // TODO: additional util
         uint256 length = presaleClaimStrategies.length;
         for (uint256 i = 0; i < length; i++) {
             ClaimSchedule memory presaleClaimStrategy = presaleClaimStrategies[i];
@@ -233,12 +258,34 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             }
         }
 
-        uint256 claimable = totalClaimablePercentage - presaleBalance.claimedAmount;
+        uint256 claimable = (presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE * totalClaimablePercentage) - presaleBalance.claimedAmount;
         if (claimable == 0) revert AllocationAlreadyClaimed();
 
+        return claimable; 
+    }
 
-        // TODO: witdhraw claimable amount
+    function _calculateClaimableAmount(PresaleInfo memory presale, uint256 index) private returns (uint256) {
+        Balance storage presaleBalance = contributions[msg.sender][index];
+        if (presaleBalance.claimedAmount >= presaleBalance.allocatedAmount) revert AllocationAlreadyClaimed();
+
+        uint256 totalClaimablePercentage;
+
+        ClaimSchedule[] memory presaleClaimStrategies = claimStrategies[presale.claimStrategyId];
+
+        uint256 length = presaleClaimStrategies.length;
+        for (uint256 i = 0; i < length; i++) {
+            ClaimSchedule memory presaleClaimStrategy = presaleClaimStrategies[i];
+
+            if (presaleClaimStrategy.availableFromDate <= block.timestamp) {
+                totalClaimablePercentage += presaleClaimStrategy.percentage;
+            }
+        }
+
+        uint256 claimable = (presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE * totalClaimablePercentage) - presaleBalance.claimedAmount;
+        if (claimable == 0) revert AllocationAlreadyClaimed();
+
         presaleBalance.claimedAmount += claimable;
+        return claimable;
     }
 
     function _validateAndUpdateBalance(
@@ -300,8 +347,6 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
         ERC20Burnable(token).burn(amount);
     }
-
-    function _updateBuyerBalance(address buyer) private {}
 
     function _validatePresaleTokenBuyAmount(
         uint256 estimatedTokensAmount,
@@ -396,8 +441,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         return (size > 0);
     }
 
-    function findBalanceIndex( uint256 presaleId) private view returns (uint256 foundIndex, bool isFound) {
-        Balance[] storage userContributions = contributions[msg.sender];
+    function _findBalanceIndex(address participant, uint256 presaleId) private view returns (uint256 foundIndex, bool isFound) {
+        Balance[] storage userContributions = contributions[participant];
 
         uint256 length = userContributions.length;
          for (uint256 i = 0; i < length; i++) {

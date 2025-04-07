@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { Vm } from 'forge-std/Test.sol';
-import { console } from 'forge-std/console.sol';
-
 import { Test } from './Test.sol';
 import { IIDO } from '../src/interfaces/IDO.interface.sol';
 import { IDO } from '../src/IDO.sol';
@@ -17,7 +15,6 @@ contract IdoTest is Test {
 
     struct DefaultParams {
         IIDO.CreatePresaleParams presaleParams;
-        IIDO.ClaimSchedule[] claimsSchedule;
         address[] initialWhitelistedTokens;
         address[] initialWhitelistedWallets;
     }
@@ -36,6 +33,8 @@ contract IdoTest is Test {
         IIDO.ClaimSchedule[] memory claimsSchedule = new IDO.ClaimSchedule[](1);
         claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 100 });
 
+        uint256 claimStrategyId = ido.createClaimStrategy(claimsSchedule);
+
         address[] memory initialWhitelistedTokens = new address[](2);
         address[] memory initialWhitelistedWallets;
 
@@ -52,12 +51,11 @@ contract IdoTest is Test {
                 totalSupply: 1_000_000 * (10 ** presaleToken.decimals()),
                 minAllocationAmount: 10 * (10 ** presaleToken.decimals()),
                 maxAllocationAmount: 1000 * (10 ** presaleToken.decimals()),
-                claimStrategyId: 1,
+                claimStrategyId: claimStrategyId,
                 priceInUSDT: 1 * (10 ** usdtToken.decimals()),
                 priceInETH: 0.1 ether,
                 isPublic: true
             }),
-            claimsSchedule: claimsSchedule,
             initialWhitelistedTokens: initialWhitelistedTokens,
             initialWhitelistedWallets: initialWhitelistedWallets
         });
@@ -71,7 +69,6 @@ contract IdoTest is Test {
     function createPresale(DefaultParams storage params) internal {
         ido.createPresale(
             params.presaleParams,
-            params.claimsSchedule,
             params.initialWhitelistedTokens,
             params.initialWhitelistedWallets
         );
@@ -83,7 +80,6 @@ contract IdoTest is Test {
         try
             ido.createPresale(
                 params.presaleParams,
-                params.claimsSchedule,
                 params.initialWhitelistedTokens,
                 params.initialWhitelistedWallets
             )

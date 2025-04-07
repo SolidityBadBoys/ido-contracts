@@ -65,10 +65,6 @@ interface IIDO {
         address[] calldata initialWhitelistedTokens,
         address[] calldata initialWhitelistedWallets
     ) external;
-    // function createClaimStrategy(
-    //     ClaimSchedule[] calldata claimsSchedule
-    // ) external;
-
-    // function getPresaleInfo(uint256 presaleId) external view returns (PresaleInfo memory);
-    // function getBalance(address participant, uint256 presaleId) external view returns (Balance memory);
+    function createClaimStrategy(ClaimSchedule[] calldata claimsSchedule) external returns (uint256);
+    function getAvailableClaimAmount(uint256 presaleId) external view returns (uint256);
 }

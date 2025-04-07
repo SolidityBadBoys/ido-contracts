@@ -158,29 +158,7 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-    function test_WhenClaimScheduleIsEmpty() external {
-        defaultParams.claimsSchedule = new IIDO.ClaimSchedule[](0);
-        vm.expectRevert(abi.encodeWithSelector(EmptyClaimSchedule.selector));
-        vm.prank(admin);
-        createPresale(defaultParams);
-        vm.stopPrank();
-    }
 
-    function test_WhenClaimStartDateIsInPast() external {
-        defaultParams.claimsSchedule[0].availableFromDate = block.timestamp - 1;
-        vm.expectRevert(abi.encodeWithSelector(IncorrectClaimStartDate.selector));
-        vm.prank(admin);
-        createPresale(defaultParams);
-        vm.stopPrank();
-    }
-
-    function test_WhenClaimPercentageSumIsNot100() external {
-        defaultParams.claimsSchedule[0].percentage = 50;
-        vm.expectRevert(abi.encodeWithSelector(IncorrectClaimPercentageSum.selector));
-        vm.prank(admin);
-        createPresale(defaultParams);
-        vm.stopPrank();
-    }
 
     function test_WhenIsNotUsdtOrEth() external {
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();
