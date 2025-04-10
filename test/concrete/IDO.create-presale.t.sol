@@ -158,8 +158,6 @@ contract IdoCreatePresale is IdoTest {
         vm.stopPrank();
     }
 
-
-
     function test_WhenIsNotUsdtOrEth() external {
         MockNonErc20Token nonErc20Token = new MockNonErc20Token();
         defaultParams.initialWhitelistedTokens[0] = address(nonErc20Token);

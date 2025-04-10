@@ -28,12 +28,18 @@ contract IdoTest is Test {
 
         ido = new IDO(address(usdtToken));
 
+        ido.grantRole(ido.ADMIN_ROLE(), admin);
+
         presaleToken = new Token();
 
         IIDO.ClaimSchedule[] memory claimsSchedule = new IDO.ClaimSchedule[](1);
         claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 100 });
 
+        vm.stopPrank();
+        vm.prank(admin);
         uint256 claimStrategyId = ido.createClaimStrategy(claimsSchedule);
+
+        vm.startPrank(deployer);
 
         address[] memory initialWhitelistedTokens = new address[](2);
         address[] memory initialWhitelistedWallets;
@@ -62,28 +68,17 @@ contract IdoTest is Test {
 
         presaleToken.transfer(deployer, 1_000_000 * (10 ** presaleToken.decimals()));
 
-        ido.grantRole(ido.ADMIN_ROLE(), admin);
         vm.stopPrank();
     }
 
     function createPresale(DefaultParams storage params) internal {
-        ido.createPresale(
-            params.presaleParams,
-            params.initialWhitelistedTokens,
-            params.initialWhitelistedWallets
-        );
+        ido.createPresale(params.presaleParams, params.initialWhitelistedTokens, params.initialWhitelistedWallets);
     }
 
     function createPresaleWithId(DefaultParams storage params) internal returns (uint256) {
         vm.recordLogs();
 
-        try
-            ido.createPresale(
-                params.presaleParams,
-                params.initialWhitelistedTokens,
-                params.initialWhitelistedWallets
-            )
-        {
+        try ido.createPresale(params.presaleParams, params.initialWhitelistedTokens, params.initialWhitelistedWallets) {
             Vm.Log[] memory logs = vm.getRecordedLogs();
             require(logs.length > 0, 'No logs found after presale creation');
             uint256 presaleId = uint256(logs[0].topics[1]);

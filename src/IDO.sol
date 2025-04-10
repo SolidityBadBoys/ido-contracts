@@ -206,18 +206,18 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         uint256 estimatedTokensAmount = (amount * (10 ** IERC20Metadata(token).decimals())) / presale.priceInUSDT;
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        
+
         // @TODO: Вынести в util функцию (повторяется код)
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
         presale.remainedSupply -= estimatedTokensAmount;
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
-    function claim(uint256 presaleId) external onlyActivePresale(presaleId) nonReentrant() {
+    function claim(uint256 presaleId) external onlyActivePresale(presaleId) nonReentrant {
         PresaleInfo memory presale = presales[presaleId];
 
         (uint256 index, bool found) = _findBalanceIndex(msg.sender, presaleId);
-        if(!found) revert ClaimIsNotAvailable();
+        if (!found) revert ClaimIsNotAvailable();
 
         uint256 claimable = _calculateClaimableAmount(presale, index);
 
@@ -225,13 +225,12 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
     }
 
     function createClaimStrategy(
-        ClaimSchedule[] calldata claimsSchedule
+        ClaimSchedule[] memory claimsSchedule
     ) external onlyRole(ADMIN_ROLE) returns (uint256) {
         _validateSchedule(claimsSchedule);
-        
-        uint256 claimStrategyId = _getRandomNumber(MAX_VALUE_OF_ID);
 
-       claimStrategies[claimStrategyId] = claimsSchedule;
+        uint256 claimStrategyId = _getRandomNumber(MAX_VALUE_OF_ID);
+        claimStrategies[claimStrategyId] = claimsSchedule;
 
         return claimStrategyId;
     }
@@ -240,7 +239,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         PresaleInfo memory presale = presales[presaleId];
 
         (uint256 index, bool found) = _findBalanceIndex(msg.sender, presaleId);
-        if(!found) revert ClaimIsNotAvailable();
+        if (!found) revert ClaimIsNotAvailable();
 
         Balance storage presaleBalance = contributions[msg.sender][index];
         if (presaleBalance.claimedAmount >= presaleBalance.allocatedAmount) return 0;
@@ -258,10 +257,11 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             }
         }
 
-        uint256 claimable = (presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE * totalClaimablePercentage) - presaleBalance.claimedAmount;
+        uint256 claimable = ((presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE) * totalClaimablePercentage) -
+            presaleBalance.claimedAmount;
         if (claimable == 0) revert AllocationAlreadyClaimed();
 
-        return claimable; 
+        return claimable;
     }
 
     function _calculateClaimableAmount(PresaleInfo memory presale, uint256 index) private returns (uint256) {
@@ -281,7 +281,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
             }
         }
 
-        uint256 claimable = (presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE * totalClaimablePercentage) - presaleBalance.claimedAmount;
+        uint256 claimable = ((presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE) * totalClaimablePercentage) -
+            presaleBalance.claimedAmount;
         if (claimable == 0) revert AllocationAlreadyClaimed();
 
         presaleBalance.claimedAmount += claimable;
@@ -367,7 +368,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         return uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _msgSender()))) % max;
     }
 
-    function _validateSchedule(ClaimSchedule[] calldata claimsSchedule) private view {
+    function _validateSchedule(ClaimSchedule[] memory claimsSchedule) private view {
         uint256 totalClaimsSchedulePercentage = 0;
         uint256 length = claimsSchedule.length;
 
@@ -441,15 +442,18 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         return (size > 0);
     }
 
-    function _findBalanceIndex(address participant, uint256 presaleId) private view returns (uint256 foundIndex, bool isFound) {
+    function _findBalanceIndex(
+        address participant,
+        uint256 presaleId
+    ) private view returns (uint256 foundIndex, bool isFound) {
         Balance[] storage userContributions = contributions[participant];
 
         uint256 length = userContributions.length;
-         for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             if (userContributions[i].presaleId == presaleId) {
                 return (i, true);
             }
-         }
+        }
 
         return (0, false);
     }

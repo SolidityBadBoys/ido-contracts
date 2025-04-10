@@ -47,7 +47,6 @@ contract IdoBuyTokens is IdoTest {
         ido.buy{ value: 0 }(presaleId);
     }
 
-
     function test_WhenAmountIsZeroForUsdt() external {
         vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
@@ -61,7 +60,6 @@ contract IdoBuyTokens is IdoTest {
         vm.prank(alina);
         ido.buy(presaleId, address(usdtToken), 0);
     }
-
 
     function test_WhenBuyPublicPresaleTokenWithEth() external {
         vm.prank(admin);
@@ -120,11 +118,10 @@ contract IdoBuyTokens is IdoTest {
         uint256 amount = defaultParams.presaleParams.priceInUSDT * 100;
         usdtToken.approve(address(ido), amount);
         ido.buy(presaleId, address(usdtToken), 100 * (10 ** usdtToken.decimals()));
-        
+
         uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
         assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
-
     }
 
     function test_WhenBuyNonPublicPresaleTokenWithUsdt() external {
@@ -147,7 +144,7 @@ contract IdoBuyTokens is IdoTest {
         uint256 amount = defaultParams.presaleParams.priceInUSDT * 100;
         usdtToken.approve(address(ido), amount);
         ido.buy(presaleId, address(usdtToken), 100 * (10 ** usdtToken.decimals()));
-        
+
         uint256 newPresaleTokenBalance = ido.getMyBalance(presaleId);
         assertEq(newPresaleTokenBalance, 100 * (10 ** presaleToken.decimals()));
         vm.stopPrank();
@@ -155,7 +152,7 @@ contract IdoBuyTokens is IdoTest {
 
     function test_WhenPresaleDoesNotExistsWithUsdt() external {
         uint256 decimals = usdtToken.decimals();
-        
+
         vm.expectRevert(abi.encodeWithSelector(PresaleDoesNotExists.selector));
 
         vm.startPrank(alina);
@@ -167,7 +164,7 @@ contract IdoBuyTokens is IdoTest {
     function test_WhenPresaleIsNotActiveWithUsdt() external {
         vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
-    
+
         uint256 decimals = usdtToken.decimals();
 
         vm.expectRevert(abi.encodeWithSelector(PresaleIsNotActive.selector));
