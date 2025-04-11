@@ -87,3 +87,6 @@ error ClaimIsNotAvailable();
 
 /// @dev Error when user has already claimed full allocation
 error AllocationAlreadyClaimed();
+
+/// @dev Error when user has already claimed full available allocation
+error AllocationIsNotAvailable();

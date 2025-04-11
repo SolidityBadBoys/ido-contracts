@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IAccessControl } from '@openzeppelin/contracts/access/IAccessControl.sol';
 import { IdoTest } from '../IdoTest.sol';
 import { IDO } from '../../src/IDO.sol';
 import '../../src/errors/errors.sol';
@@ -36,6 +37,23 @@ contract IdoCreateClaimStrategy is IdoTest {
         claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 50 });
         vm.expectRevert(abi.encodeWithSelector(IncorrectClaimPercentageSum.selector));
         vm.prank(admin);
+        ido.createClaimStrategy(claimsSchedule);
+    }
+
+    function test_WhenAdminCreateClaimStrategy() external {
+        IIDO.ClaimSchedule[] memory claimsSchedule = new IIDO.ClaimSchedule[](1);
+        claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 100 });
+        vm.prank(admin);
+        ido.createClaimStrategy(claimsSchedule);
+    }
+
+    function test_WhenNonAdminCreateClaimStrategy() external {
+        IIDO.ClaimSchedule[] memory claimsSchedule = new IIDO.ClaimSchedule[](1);
+        claimsSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 100 });
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alina, ido.ADMIN_ROLE())
+        );
+        vm.prank(alina);
         ido.createClaimStrategy(claimsSchedule);
     }
 }

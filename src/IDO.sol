@@ -210,6 +210,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         // @TODO: Вынести в util функцию (повторяется код)
         _validateAndUpdateBalance(presaleId, estimatedTokensAmount, presale);
         presale.remainedSupply -= estimatedTokensAmount;
+
         emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
@@ -221,7 +222,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
         uint256 claimable = _calculateClaimableAmount(presale, index);
 
-        IERC20(presale.token).safeTransferFrom(address(this), msg.sender, claimable);
+        IERC20(presale.token).safeTransfer(msg.sender, claimable);
     }
 
     function createClaimStrategy(
@@ -283,7 +284,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
         uint256 claimable = ((presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE) * totalClaimablePercentage) -
             presaleBalance.claimedAmount;
-        if (claimable == 0) revert AllocationAlreadyClaimed();
+        if (claimable == 0) revert AllocationIsNotAvailable();
 
         presaleBalance.claimedAmount += claimable;
         return claimable;
