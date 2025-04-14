@@ -236,7 +236,7 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         return claimStrategyId;
     }
 
-    function getAvailableClaimAmount(uint256 presaleId) external view returns (uint256) {
+    function getAvailableClaimAmount(uint256 presaleId) external view onlyActivePresale(presaleId) returns (uint256) {
         PresaleInfo memory presale = presales[presaleId];
 
         (uint256 index, bool found) = _findBalanceIndex(msg.sender, presaleId);
@@ -260,7 +260,6 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
 
         uint256 claimable = ((presaleBalance.allocatedAmount / MULTIPLIER_PERCENTAGE) * totalClaimablePercentage) -
             presaleBalance.claimedAmount;
-        if (claimable == 0) revert AllocationAlreadyClaimed();
 
         return claimable;
     }
