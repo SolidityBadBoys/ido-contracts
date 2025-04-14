@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IdoTest } from '../IdoTest.sol';
+import { IIDO } from '../../src/interfaces/IDO.interface.sol';
 import '../../src/errors/errors.sol';
 
 /**
@@ -11,6 +12,8 @@ import '../../src/errors/errors.sol';
 contract IdoGetAvailableClaimAmount is IdoTest {
     function setUp() external {
         fixture();
+
+        deal(chuck, 500 ether);
     }
 
     function test_WhenPresaleDoesNotExists() external {
@@ -20,6 +23,7 @@ contract IdoGetAvailableClaimAmount is IdoTest {
     }
 
     function test_WhenAddressPresaleIsNotActive() external {
+        vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
 
         vm.expectRevert(abi.encodeWithSelector(PresaleIsNotActive.selector));
@@ -85,8 +89,8 @@ contract IdoGetAvailableClaimAmount is IdoTest {
 
         ido.claim(presaleId);
 
-        vm.expectRevert(abi.encodeWithSelector(AllocationIsNotAvailable.selector));
-        ido.getAvailableClaimAmount(presaleId);
+        uint256 claimableAmount = ido.getAvailableClaimAmount(presaleId);
+        assertEq(claimableAmount, 0, 'Claimable amount should be 0');
 
         vm.stopPrank();
     }
@@ -95,20 +99,18 @@ contract IdoGetAvailableClaimAmount is IdoTest {
         vm.prank(admin);
         uint256 presaleId = createPresaleWithId(defaultParams);
 
-        uint256 totalToDeposit = 1000 * (10 ** presaleToken.decimals());
+        uint256 totalToDeposit = 100 * (10 ** presaleToken.decimals());
 
         vm.startPrank(deployer);
         presaleToken.approve(address(ido), totalToDeposit);
         ido.deposit(presaleId, totalToDeposit);
         vm.stopPrank();
 
-        // Chuck покупает аллокацию
         vm.startPrank(chuck);
         uint256 amount = defaultParams.presaleParams.priceInETH * 100;
         ido.buy{ value: amount }(presaleId);
         vm.stopPrank();
 
-        // Чекаем claimable
         vm.prank(chuck);
         uint256 available = ido.getAvailableClaimAmount(presaleId);
 
@@ -116,32 +118,30 @@ contract IdoGetAvailableClaimAmount is IdoTest {
     }
 
     function test_ReturnsPartialClaim_WhenVestingScheduleIsSplit() external {
-        // Новый вестинг план: 50% сейчас, 50% через 1 день
-        IIDO.ClaimSchedule;
+        IIDO.ClaimSchedule[] memory splitSchedule = new IIDO.ClaimSchedule[](2);
         splitSchedule[0] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp, percentage: 50 });
         splitSchedule[1] = IIDO.ClaimSchedule({ availableFromDate: block.timestamp + 1 days, percentage: 50 });
 
-        vm.prank(admin);
+        vm.startPrank(admin);
         uint256 splitClaimStrategyId = ido.createClaimStrategy(splitSchedule);
 
         defaultParams.presaleParams.claimStrategyId = splitClaimStrategyId;
 
         uint256 presaleId = createPresaleWithId(defaultParams);
 
-        uint256 totalToDeposit = 1000 * (10 ** presaleToken.decimals());
+        uint256 totalToDeposit = 100 * (10 ** presaleToken.decimals());
+        vm.stopPrank();
 
         vm.startPrank(deployer);
         presaleToken.approve(address(ido), totalToDeposit);
         ido.deposit(presaleId, totalToDeposit);
         vm.stopPrank();
 
-        // Chuck покупает аллокацию
         vm.startPrank(chuck);
         uint256 amount = defaultParams.presaleParams.priceInETH * 100;
         ido.buy{ value: amount }(presaleId);
         vm.stopPrank();
 
-        // Чекаем доступную сумму: должно быть 50% аллокации
         uint256 expected = 50 * (10 ** presaleToken.decimals());
 
         vm.prank(chuck);
