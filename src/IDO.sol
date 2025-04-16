@@ -233,6 +233,8 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
         uint256 claimStrategyId = _getRandomNumber(MAX_VALUE_OF_ID);
         claimStrategies[claimStrategyId] = claimsSchedule;
 
+        emit StrategyCreated(claimStrategyId);
+
         return claimStrategyId;
     }
 

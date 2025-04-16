@@ -51,6 +51,7 @@ interface IIDO {
     event PresaleCreated(uint256 indexed presaleId, address token, uint256 totalSupply, bool isPublic);
     event TokensDeposited(uint256 indexed presaleId, address indexed token, uint256 amount);
     event AllocationBought(uint256 indexed presaleId, address indexed buyer, uint256 amount);
+    event StrategyCreated(uint256 indexed strategyId);
 
     function buy(uint256 presaleId) external payable;
     function buy(uint256 presaleId, address token, uint256 amount) external;
