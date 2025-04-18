@@ -323,9 +323,6 @@ contract IDO is IIDO, Ownable, AccessControl, ReentrancyGuard {
                 Balance({ presaleId: presaleId, allocatedAmount: estimatedTokensAmount, claimedAmount: 0 })
             );
         }
-
-        presale.remainedSupply -= estimatedTokensAmount;
-        emit AllocationBought(presaleId, msg.sender, estimatedTokensAmount);
     }
 
     function getMyBalance(uint256 presaleId) external view returns (uint256) {
